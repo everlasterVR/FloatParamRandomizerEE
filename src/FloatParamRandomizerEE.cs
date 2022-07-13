@@ -3,6 +3,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 using ColliderEditor;
+using UnityEngine.UI;
 using static Utils;
 
 /// <summary>
@@ -34,6 +35,10 @@ public class FloatParamRandomizerEE : MVRScript
     {
         try
         {
+            var titleJss = new JSONStorableString("title", $"{"\n".Size(18)}{nameof(FloatParamRandomizerEE)}".Bold());
+            var titleTextField = CreateTitleTextField(titleJss, 72, false);
+            titleTextField.UItext.fontSize = 36;
+
             _popups = new List<UIPopup>();
             CreateAtomChooser();
             CreateReceiverChooser();
@@ -42,6 +47,7 @@ public class FloatParamRandomizerEE : MVRScript
             // set atom to current atom to initialize
             _atomJsc.val = containingAtom.uid;
 
+            this.NewSpacer(75, true);
             // create random value generation period
             _periodJsf = new JSONStorableFloat("period", 1f, 0f, 10f, false);
             RegisterFloat(_periodJsf);
@@ -83,13 +89,26 @@ public class FloatParamRandomizerEE : MVRScript
         }
     }
 
+    private UIDynamicTextField CreateTitleTextField(JSONStorableString jss, int height, bool rightSide)
+    {
+        var textField = CreateTextField(jss, rightSide);
+        textField.UItext.alignment = TextAnchor.MiddleCenter;
+        textField.backgroundColor = Color.clear;
+
+        var layout = textField.GetComponent<LayoutElement>();
+        layout.preferredHeight = height;
+        layout.minHeight = height;
+
+        return textField;
+    }
+
     private void CreateAtomChooser()
     {
         _atomJsc = new JSONStorableStringChooser("atom", SuperController.singleton.GetAtomUIDs(), null, "Atom", SyncAtom);
         _atomJsc.representsAtomUid = true;
         RegisterStringChooser(_atomJsc);
         SyncAtomChoices();
-        var uiDynamicPopup = NewPopup(_atomJsc, 1100);
+        var uiDynamicPopup = NewPopup(_atomJsc, 1000);
         uiDynamicPopup.popup.onOpenPopupHandlers += SyncAtomChoices;
     }
 
@@ -97,14 +116,14 @@ public class FloatParamRandomizerEE : MVRScript
     {
         _receiverJsc = new JSONStorableStringChooser("receiver", null, null, "Receiver", SyncReceiver);
         RegisterStringChooser(_receiverJsc);
-        NewPopup(_receiverJsc, 960);
+        NewPopup(_receiverJsc, 860);
     }
 
     private void CreateReceiverTargetChooser()
     {
         _receiverTargetJsc = new JSONStorableStringChooser("receiverTarget", null, null, "Target", SyncReceiverTarget);
         RegisterStringChooser(_receiverTargetJsc);
-        NewPopup(_receiverTargetJsc, 820);
+        NewPopup(_receiverTargetJsc, 720);
     }
 
     private UIDynamicPopup NewPopup(JSONStorableStringChooser jsc, int panelHeight)

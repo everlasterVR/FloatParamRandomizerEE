@@ -1,3 +1,5 @@
+src\Extensions\StringExtension.cs
+src\Extensions\MVRScriptExtensions.cs
 src\FloatParamRandomizerEE.cs
 src\Utils.cs
 vendor\vam-collider-editor\MVRScriptExtensions.cs
