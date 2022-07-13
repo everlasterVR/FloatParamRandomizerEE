@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using static Utils;
 
 /// <summary>
 /// Extended edition of FloatParamRandomizer by MeshedVR.
@@ -25,6 +26,8 @@ public class FloatParamRandomizerEE : MVRScript
 
     private string _receiverTargetName;
     private Atom _receivingAtom;
+
+    public const string VERSION = "v0.0.0";
 
     public override void Init()
     {
@@ -75,7 +78,7 @@ public class FloatParamRandomizerEE : MVRScript
         }
         catch(Exception e)
         {
-            SuperController.LogError("Exception caught: " + e);
+            LogError($"{e}");
         }
     }
 
@@ -280,15 +283,22 @@ public class FloatParamRandomizerEE : MVRScript
         }
         catch(Exception e)
         {
-            SuperController.LogError("Exception caught: " + e);
+            LogError($"{e}");
         }
     }
 
     protected void OnDestroy()
     {
-        if(_uiListener != null)
+        try
         {
-            DestroyImmediate(_uiListener);
+            if(_uiListener != null)
+            {
+                DestroyImmediate(_uiListener);
+            }
+        }
+        catch(Exception e)
+        {
+            LogError($"{e}");
         }
     }
 }
