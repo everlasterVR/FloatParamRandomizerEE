@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using ColliderEditor;
 using static Utils;
 
 /// <summary>
@@ -120,13 +121,13 @@ public class FloatParamRandomizerEE : MVRScript
     public override void InitUI()
     {
         base.InitUI();
-        if (UITransform == null || _uiListener != null)
+        if(UITransform == null || _uiListener != null)
         {
             return;
         }
 
         _uiListener = UITransform.gameObject.AddComponent<UIListener>();
-        if (_uiListener != null)
+        if(_uiListener != null)
         {
             _uiListener.onDisabled.AddListener(OnBlur);
             _uiListener.onClick.AddListener(OnBlur);

@@ -2,24 +2,27 @@
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 
-public class UIListener : MonoBehaviour, IPointerClickHandler
+namespace ColliderEditor
 {
-    public readonly UnityEvent onDisabled = new UnityEvent();
-    public readonly UnityEvent onClick = new UnityEvent();
-
-    public void OnPointerClick(PointerEventData eventData)
+    public class UIListener : MonoBehaviour, IPointerClickHandler
     {
-        onClick.Invoke();
-    }
+        public readonly UnityEvent onDisabled = new UnityEvent();
+        public readonly UnityEvent onClick = new UnityEvent();
 
-    public void OnDisable()
-    {
-        onDisabled.Invoke();
-    }
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            onClick.Invoke();
+        }
 
-    private void OnDestroy()
-    {
-        onDisabled.RemoveAllListeners();
-        onClick.RemoveAllListeners();
+        public void OnDisable()
+        {
+            onDisabled.Invoke();
+        }
+
+        private void OnDestroy()
+        {
+            onDisabled.RemoveAllListeners();
+            onClick.RemoveAllListeners();
+        }
     }
 }
