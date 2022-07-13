@@ -78,10 +78,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="src\Extensions\MVRScriptExtensions.cs" />
+    <Compile Include="src\Extensions\StringExtension.cs" />
     <Compile Include="src\FloatParamRandomizerEE.cs" />
     <Compile Include="src\Utils.cs" />
-    <Compile Include="src\vendor\vam-collider-editor\MVRScriptExtensions.cs" />
-    <Compile Include="src\vendor\vam-collider-editor\UIListener.cs" />
+    <Compile Include="vendor\vam-collider-editor\MVRScriptExtensions.cs" />
+    <Compile Include="vendor\vam-collider-editor\UIListener.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />

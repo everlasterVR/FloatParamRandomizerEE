@@ -1,4 +1,4 @@
-src\vendor\vam-collider-editor\MVRScriptExtensions.cs
-src\vendor\vam-collider-editor\UIListener.cs
 src\FloatParamRandomizerEE.cs
 src\Utils.cs
+vendor\vam-collider-editor\MVRScriptExtensions.cs
+vendor\vam-collider-editor\UIListener.cs
