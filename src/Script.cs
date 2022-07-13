@@ -10,6 +10,91 @@ using System.Collections.Generic;
 /// </summary>
 public class Script : MVRScript
 {
+    private JSONStorableStringChooser _atomJsc;
+    private JSONStorableStringChooser _receiverJsc;
+    private JSONStorableStringChooser _receiverTargetJsc;
+    private JSONStorableFloat _periodJsf;
+    private JSONStorableFloat _quicknessJsf;
+    private JSONStorableFloat _lowerValueJsf;
+    private JSONStorableFloat _upperValueJsf;
+    private JSONStorableFloat _targetValueJsf;
+    private JSONStorableFloat _currentValueJsf;
+    private JSONStorableFloat _receiverTargetJsf;
+    private JSONStorable _receiverStorable;
+
+    private string _receiverTargetName;
+    private Atom _receivingAtom;
+
+    public override void Init()
+    {
+        try
+        {
+            // make atom selector
+            _atomJsc = new JSONStorableStringChooser("atom", SuperController.singleton.GetAtomUIDs(), null, "Atom", SyncAtom);
+            _atomJsc.representsAtomUid = true;
+            RegisterStringChooser(_atomJsc);
+            SyncAtomChoices();
+            var dp = CreateFilterablePopup(_atomJsc);
+            dp.popupPanelHeight = 1100f;
+            // want to always resync the atom choices on opening popup since atoms can be added/removed
+            dp.popup.onOpenPopupHandlers += SyncAtomChoices;
+
+            // make receiver selector
+            _receiverJsc = new JSONStorableStringChooser("receiver", null, null, "Receiver", SyncReceiver);
+            RegisterStringChooser(_receiverJsc);
+            dp = CreateFilterablePopup(_receiverJsc);
+            dp.popupPanelHeight = 960f;
+
+            // make receiver target selector
+            _receiverTargetJsc = new JSONStorableStringChooser("receiverTarget", null, null, "Target", SyncReceiverTarget);
+            RegisterStringChooser(_receiverTargetJsc);
+            dp = CreateFilterablePopup(_receiverTargetJsc);
+            dp.popupPanelHeight = 820f;
+
+            // set atom to current atom to initialize
+            _atomJsc.val = containingAtom.uid;
+
+            // create random value generation period
+            _periodJsf = new JSONStorableFloat("period", 1f, 0f, 10f, false);
+            RegisterFloat(_periodJsf);
+            CreateSlider(_periodJsf, true);
+
+            // quickness (smoothness)
+            _quicknessJsf = new JSONStorableFloat("quickness", 1f, 0f, 10f);
+            RegisterFloat(_quicknessJsf);
+            CreateSlider(_quicknessJsf, true);
+
+            // lower val
+            _lowerValueJsf = new JSONStorableFloat("lowerValue", 0f, 0f, 1f, false);
+            RegisterFloat(_lowerValueJsf);
+            CreateSlider(_lowerValueJsf, true);
+
+            // upper val
+            _upperValueJsf = new JSONStorableFloat("upperValue", 0f, 0f, 1f, false);
+            RegisterFloat(_upperValueJsf);
+            CreateSlider(_upperValueJsf, true);
+
+            // target val
+            _targetValueJsf = new JSONStorableFloat("targetValue", 0f, 0f, 1f, false, false);
+            // don't register - this is for viewing only and is generated
+            var ds = CreateSlider(_targetValueJsf, true);
+            ds.defaultButtonEnabled = false;
+            ds.quickButtonsEnabled = false;
+
+            // current val
+            _currentValueJsf = new JSONStorableFloat("currentValue", 0f, 0f, 1f, false, false);
+            // don't register - this is for viewing only and is generated
+            ds = CreateSlider(_currentValueJsf, true);
+            ds.defaultButtonEnabled = false;
+            ds.quickButtonsEnabled = false;
+
+        }
+        catch(Exception e)
+        {
+            SuperController.LogError("Exception caught: " + e);
+        }
+    }
+
     private void SyncAtomChoices()
     {
         var atomChoices = new List<string>();
@@ -19,10 +104,8 @@ public class Script : MVRScript
             atomChoices.Add(atomUID);
         }
 
-        _atomJSON.choices = atomChoices;
+        _atomJsc.choices = atomChoices;
     }
-
-    private Atom _receivingAtom;
 
     private void SyncAtom(string atomUID)
     {
@@ -45,11 +128,9 @@ public class Script : MVRScript
             _receivingAtom = null;
         }
 
-        _receiverJSON.choices = receiverChoices;
-        _receiverJSON.val = "None";
+        _receiverJsc.choices = receiverChoices;
+        _receiverJsc.val = "None";
     }
-
-    private JSONStorableStringChooser _atomJSON;
 
     private string _missingReceiverStoreId = "";
 
@@ -60,18 +141,15 @@ public class Script : MVRScript
             var missingReceiver = _receivingAtom.GetStorableByID(_missingReceiverStoreId);
             if(missingReceiver != null)
             {
-                //Debug.Log("Found late-loading receiver " + _missingReceiverStoreId);
                 string saveTargetName = _receiverTargetName;
                 SyncReceiver(_missingReceiverStoreId);
                 _missingReceiverStoreId = "";
                 insideRestore = true;
-                _receiverTargetJSON.val = saveTargetName;
+                _receiverTargetJsc.val = saveTargetName;
                 insideRestore = false;
             }
         }
     }
-
-    private JSONStorable _receiver;
 
     private void SyncReceiver(string receiverID)
     {
@@ -79,10 +157,10 @@ public class Script : MVRScript
         receiverTargetChoices.Add("None");
         if(_receivingAtom != null && receiverID != null)
         {
-            _receiver = _receivingAtom.GetStorableByID(receiverID);
-            if(_receiver != null)
+            _receiverStorable = _receivingAtom.GetStorableByID(receiverID);
+            if(_receiverStorable != null)
             {
-                foreach(string floatParam in _receiver.GetFloatParamNames())
+                foreach(string floatParam in _receiverStorable.GetFloatParamNames())
                 {
                     receiverTargetChoices.Add(floatParam);
                 }
@@ -90,129 +168,43 @@ public class Script : MVRScript
             else if(receiverID != "None")
             {
                 // some storables can be late loaded, like skin, clothing, hair, etc so must keep track of missing receiver
-                //Debug.Log("Missing receiver " + receiverID);
                 _missingReceiverStoreId = receiverID;
             }
         }
         else
         {
-            _receiver = null;
+            _receiverStorable = null;
         }
 
-        _receiverTargetJSON.choices = receiverTargetChoices;
-        _receiverTargetJSON.val = "None";
+        _receiverTargetJsc.choices = receiverTargetChoices;
+        _receiverTargetJsc.val = "None";
     }
-
-    private JSONStorableStringChooser _receiverJSON;
-
-    private string _receiverTargetName;
-    private JSONStorableFloat _receiverTarget;
 
     private void SyncReceiverTarget(string receiverTargetName)
     {
         _receiverTargetName = receiverTargetName;
-        _receiverTarget = null;
-        if(_receiver != null && receiverTargetName != null)
+        _receiverTargetJsf = null;
+        if(_receiverStorable != null && receiverTargetName != null)
         {
-            _receiverTarget = _receiver.GetFloatJSONParam(receiverTargetName);
-            if(_receiverTarget != null)
+            _receiverTargetJsf = _receiverStorable.GetFloatJSONParam(receiverTargetName);
+            if(_receiverTargetJsf != null)
             {
-                _lowerValueJSON.min = _receiverTarget.min;
-                _lowerValueJSON.max = _receiverTarget.max;
-                _upperValueJSON.min = _receiverTarget.min;
-                _upperValueJSON.max = _receiverTarget.max;
-                _currentValueJSON.min = _receiverTarget.min;
-                _currentValueJSON.max = _receiverTarget.max;
-                _targetValueJSON.min = _receiverTarget.min;
-                _targetValueJSON.max = _receiverTarget.max;
+                _lowerValueJsf.min = _receiverTargetJsf.min;
+                _lowerValueJsf.max = _receiverTargetJsf.max;
+                _upperValueJsf.min = _receiverTargetJsf.min;
+                _upperValueJsf.max = _receiverTargetJsf.max;
+                _currentValueJsf.min = _receiverTargetJsf.min;
+                _currentValueJsf.max = _receiverTargetJsf.max;
+                _targetValueJsf.min = _receiverTargetJsf.min;
+                _targetValueJsf.max = _receiverTargetJsf.max;
                 if(!insideRestore)
                 {
-                    // only sync up val if not in restore
-                    _lowerValueJSON.val = _receiverTarget.val;
-                    _upperValueJSON.val = _receiverTarget.val;
-                    _currentValueJSON.val = _receiverTarget.val;
-                    _targetValueJSON.val = _receiverTarget.val;
+                    _lowerValueJsf.val = _receiverTargetJsf.val;
+                    _upperValueJsf.val = _receiverTargetJsf.val;
+                    _currentValueJsf.val = _receiverTargetJsf.val;
+                    _targetValueJsf.val = _receiverTargetJsf.val;
                 }
             }
-        }
-    }
-
-    private JSONStorableStringChooser _receiverTargetJSON;
-
-    private JSONStorableFloat _periodJSON;
-    private JSONStorableFloat _quicknessJSON;
-    private JSONStorableFloat _lowerValueJSON;
-    private JSONStorableFloat _upperValueJSON;
-    private JSONStorableFloat _targetValueJSON;
-    private JSONStorableFloat _currentValueJSON;
-
-    public override void Init()
-    {
-        try
-        {
-            // make atom selector
-            _atomJSON = new JSONStorableStringChooser("atom", SuperController.singleton.GetAtomUIDs(), null, "Atom", SyncAtom);
-            _atomJSON.representsAtomUid = true;
-            RegisterStringChooser(_atomJSON);
-            SyncAtomChoices();
-            var dp = CreateFilterablePopup(_atomJSON);
-            dp.popupPanelHeight = 1100f;
-            // want to always resync the atom choices on opening popup since atoms can be added/removed
-            dp.popup.onOpenPopupHandlers += SyncAtomChoices;
-
-            // make receiver selector
-            _receiverJSON = new JSONStorableStringChooser("receiver", null, null, "Receiver", SyncReceiver);
-            RegisterStringChooser(_receiverJSON);
-            dp = CreateFilterablePopup(_receiverJSON);
-            dp.popupPanelHeight = 960f;
-
-            // make receiver target selector
-            _receiverTargetJSON = new JSONStorableStringChooser("receiverTarget", null, null, "Target", SyncReceiverTarget);
-            RegisterStringChooser(_receiverTargetJSON);
-            dp = CreateFilterablePopup(_receiverTargetJSON);
-            dp.popupPanelHeight = 820f;
-
-            // set atom to current atom to initialize
-            _atomJSON.val = containingAtom.uid;
-
-            // create random value generation period
-            _periodJSON = new JSONStorableFloat("period", 1f, 0f, 10f, false);
-            RegisterFloat(_periodJSON);
-            CreateSlider(_periodJSON, true);
-
-            // quickness (smoothness)
-            _quicknessJSON = new JSONStorableFloat("quickness", 1f, 0f, 10f);
-            RegisterFloat(_quicknessJSON);
-            CreateSlider(_quicknessJSON, true);
-
-            // lower val
-            _lowerValueJSON = new JSONStorableFloat("lowerValue", 0f, 0f, 1f, false);
-            RegisterFloat(_lowerValueJSON);
-            CreateSlider(_lowerValueJSON, true);
-
-            // upper val
-            _upperValueJSON = new JSONStorableFloat("upperValue", 0f, 0f, 1f, false);
-            RegisterFloat(_upperValueJSON);
-            CreateSlider(_upperValueJSON, true);
-
-            // target val
-            _targetValueJSON = new JSONStorableFloat("targetValue", 0f, 0f, 1f, false, false);
-            // don't register - this is for viewing only and is generated
-            var ds = CreateSlider(_targetValueJSON, true);
-            ds.defaultButtonEnabled = false;
-            ds.quickButtonsEnabled = false;
-
-            // current val
-            _currentValueJSON = new JSONStorableFloat("currentValue", 0f, 0f, 1f, false, false);
-            // don't register - this is for viewing only and is generated
-            ds = CreateSlider(_currentValueJSON, true);
-            ds.defaultButtonEnabled = false;
-            ds.quickButtonsEnabled = false;
-
-        }
-        catch(Exception e)
-        {
-            SuperController.LogError("Exception caught: " + e);
         }
     }
 
@@ -223,20 +215,20 @@ public class Script : MVRScript
     {
         try
         {
-            if(_accumulated > _periodJSON.val)
+            if(_accumulated > _periodJsf.val)
             {
                 _accumulated = 0f;
-                _start = _currentValueJSON.val;
-                _targetValueJSON.val = UnityEngine.Random.Range(_lowerValueJSON.val, _upperValueJSON.val);
+                _start = _currentValueJsf.val;
+                _targetValueJsf.val = UnityEngine.Random.Range(_lowerValueJsf.val, _upperValueJsf.val);
             }
 
             _accumulated += Time.deltaTime;
-            _currentValueJSON.val = Mathf.SmoothStep(_start, _targetValueJSON.val, _accumulated * _quicknessJSON.val / _periodJSON.val);
+            _currentValueJsf.val = Mathf.SmoothStep(_start, _targetValueJsf.val, _accumulated * _quicknessJsf.val / _periodJsf.val);
 
             CheckMissingReceiver();
-            if(_receiverTarget != null)
+            if(_receiverTargetJsf != null)
             {
-                _receiverTarget.val = _currentValueJSON.val;
+                _receiverTargetJsf.val = _currentValueJsf.val;
             }
         }
         catch(Exception e)
