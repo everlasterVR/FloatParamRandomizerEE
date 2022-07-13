@@ -78,7 +78,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="src\Script.cs" />
+    <Compile Include="src\FloatParamRandomizerEE.cs" />
+    <Compile Include="src\vendor\vam-collider-editor\MVRScriptExtensions.cs" />
+    <Compile Include="src\vendor\vam-collider-editor\UIListener.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />

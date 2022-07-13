@@ -1,1 +1,3 @@
-src\Script.cs
+src\vendor\vam-collider-editor\MVRScriptExtensions.cs
+src\vendor\vam-collider-editor\UIListener.cs
+src\FloatParamRandomizerEE.cs

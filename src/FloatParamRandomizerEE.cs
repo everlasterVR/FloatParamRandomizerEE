@@ -1,15 +1,16 @@
 using System;
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>
-/// FloatParamRandomizerEE
 /// Extended edition of FloatParamRandomizer by MeshedVR.
 /// Randomizes float values with a smooth transition from current value towards target value.
 /// Source: https://github.com/everlasterVR/FloatParamRandomizerEE
 /// </summary>
-public class Script : MVRScript
+public class FloatParamRandomizerEE : MVRScript
 {
+    private List<UIPopup> _popups;
     private JSONStorableStringChooser _atomJsc;
     private JSONStorableStringChooser _receiverJsc;
     private JSONStorableStringChooser _receiverTargetJsc;
@@ -29,27 +30,10 @@ public class Script : MVRScript
     {
         try
         {
-            // make atom selector
-            _atomJsc = new JSONStorableStringChooser("atom", SuperController.singleton.GetAtomUIDs(), null, "Atom", SyncAtom);
-            _atomJsc.representsAtomUid = true;
-            RegisterStringChooser(_atomJsc);
-            SyncAtomChoices();
-            var dp = CreateFilterablePopup(_atomJsc);
-            dp.popupPanelHeight = 1100f;
-            // want to always resync the atom choices on opening popup since atoms can be added/removed
-            dp.popup.onOpenPopupHandlers += SyncAtomChoices;
-
-            // make receiver selector
-            _receiverJsc = new JSONStorableStringChooser("receiver", null, null, "Receiver", SyncReceiver);
-            RegisterStringChooser(_receiverJsc);
-            dp = CreateFilterablePopup(_receiverJsc);
-            dp.popupPanelHeight = 960f;
-
-            // make receiver target selector
-            _receiverTargetJsc = new JSONStorableStringChooser("receiverTarget", null, null, "Target", SyncReceiverTarget);
-            RegisterStringChooser(_receiverTargetJsc);
-            dp = CreateFilterablePopup(_receiverTargetJsc);
-            dp.popupPanelHeight = 820f;
+            _popups = new List<UIPopup>();
+            CreateAtomChooser();
+            CreateReceiverChooser();
+            CreateReceiverTargetChooser();
 
             // set atom to current atom to initialize
             _atomJsc.val = containingAtom.uid;
@@ -93,6 +77,69 @@ public class Script : MVRScript
         {
             SuperController.LogError("Exception caught: " + e);
         }
+    }
+
+    private void CreateAtomChooser()
+    {
+        _atomJsc = new JSONStorableStringChooser("atom", SuperController.singleton.GetAtomUIDs(), null, "Atom", SyncAtom);
+        _atomJsc.representsAtomUid = true;
+        RegisterStringChooser(_atomJsc);
+        SyncAtomChoices();
+        var uiDynamicPopup = NewPopup(_atomJsc, 1100);
+        uiDynamicPopup.popup.onOpenPopupHandlers += SyncAtomChoices;
+    }
+
+    private void CreateReceiverChooser()
+    {
+        _receiverJsc = new JSONStorableStringChooser("receiver", null, null, "Receiver", SyncReceiver);
+        RegisterStringChooser(_receiverJsc);
+        NewPopup(_receiverJsc, 960);
+    }
+
+    private void CreateReceiverTargetChooser()
+    {
+        _receiverTargetJsc = new JSONStorableStringChooser("receiverTarget", null, null, "Target", SyncReceiverTarget);
+        RegisterStringChooser(_receiverTargetJsc);
+        NewPopup(_receiverTargetJsc, 820);
+    }
+
+    private UIDynamicPopup NewPopup(JSONStorableStringChooser jsc, int panelHeight)
+    {
+        var uiDynamicPopup = this.CreatePopupAuto(jsc);
+        uiDynamicPopup.popupPanelHeight = panelHeight;
+        uiDynamicPopup.popup.onOpenPopupHandlers += () => OnBlurPopup(uiDynamicPopup.popup);
+        _popups.Add(uiDynamicPopup.popup);
+        return uiDynamicPopup;
+    }
+
+    private UIListener _uiListener;
+
+    public override void InitUI()
+    {
+        base.InitUI();
+        if (UITransform == null || _uiListener != null)
+        {
+            return;
+        }
+
+        _uiListener = UITransform.gameObject.AddComponent<UIListener>();
+        if (_uiListener != null)
+        {
+            _uiListener.onDisabled.AddListener(OnBlur);
+            _uiListener.onClick.AddListener(OnBlur);
+        }
+    }
+
+    private void OnBlur()
+    {
+        OnBlurPopup(null);
+    }
+
+    private void OnBlurPopup(UIPopup openedPopup)
+    {
+        _popups.Where(popup => popup != openedPopup)
+            .ToList()
+            .ForEach(popup => popup.visible = false);
     }
 
     private void SyncAtomChoices()
@@ -234,6 +281,14 @@ public class Script : MVRScript
         catch(Exception e)
         {
             SuperController.LogError("Exception caught: " + e);
+        }
+    }
+
+    protected void OnDestroy()
+    {
+        if(_uiListener != null)
+        {
+            DestroyImmediate(_uiListener);
         }
     }
 }
