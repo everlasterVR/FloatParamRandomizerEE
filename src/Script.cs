@@ -1,14 +1,12 @@
 using System;
 using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
-using SimpleJSON;
 
 // This class will produce a random number that can be used to set any float param available in all atoms
 // includes random generation period, smoothing, and range selection options
-public class FloatParamRandomizer : MVRScript {
+public class Script : MVRScript {
 
-    protected void SyncAtomChocies() {
+    protected void SyncAtomChoices() {
         List<string> atomChoices = new List<string>();
         atomChoices.Add("None");
         foreach (string atomUID in SuperController.singleton.GetAtomUIDs()) {
@@ -120,11 +118,11 @@ public class FloatParamRandomizer : MVRScript {
             atomJSON = new JSONStorableStringChooser("atom", SuperController.singleton.GetAtomUIDs(), null, "Atom", SyncAtom);
             atomJSON.representsAtomUid = true;
             RegisterStringChooser(atomJSON);
-            SyncAtomChocies();
+            SyncAtomChoices();
             UIDynamicPopup dp = CreateFilterablePopup(atomJSON);
             dp.popupPanelHeight = 1100f;
             // want to always resync the atom choices on opening popup since atoms can be added/removed
-            dp.popup.onOpenPopupHandlers += SyncAtomChocies;
+            dp.popup.onOpenPopupHandlers += SyncAtomChoices;
 
             // make receiver selector
             receiverJSON = new JSONStorableStringChooser("receiver", null, null, "Receiver", SyncReceiver);
@@ -142,12 +140,12 @@ public class FloatParamRandomizer : MVRScript {
             atomJSON.val = containingAtom.uid;
 
             // create random value generation period
-            periodJSON = new JSONStorableFloat("period", 0.5f, 0f, 10f, false);
+            periodJSON = new JSONStorableFloat("period", 1f, 0f, 10f, false);
             RegisterFloat(periodJSON);
             CreateSlider(periodJSON, true);
 
             // quickness (smoothness)
-            quicknessJSON = new JSONStorableFloat("quickness", 10f, 0f, 100f, true);
+            quicknessJSON = new JSONStorableFloat("quickness", 1f, 0f, 10f, true);
             RegisterFloat(quicknessJSON);
             CreateSlider(quicknessJSON, true);
 
@@ -181,18 +179,20 @@ public class FloatParamRandomizer : MVRScript {
         }
     }
 
-    protected float timer = 0f;
+    protected float accumulated = 0f;
+    protected float start = 0f;
 
     protected void Update() {
         try {
-            timer -= Time.deltaTime;
-            if (timer < 0.0f) {
-                // reset timer and set a new random target value
-                timer = periodJSON.val;
+            if (accumulated > periodJSON.val) {
+                accumulated = 0f;
+                start = currentValueJSON.val;
                 targetValueJSON.val = UnityEngine.Random.Range(lowerValueJSON.val, upperValueJSON.val);
             }
-            currentValueJSON.val = Mathf.Lerp(currentValueJSON.val, targetValueJSON.val, Time.deltaTime * quicknessJSON.val);
-            // check for receivers that might have been missing on load due to asynchronous load of some assets like skin, clothing, hair
+
+            accumulated += Time.deltaTime;
+            currentValueJSON.val = Mathf.SmoothStep(start, targetValueJSON.val, accumulated * quicknessJSON.val / periodJSON.val);
+
             CheckMissingReceiver();
             if (receiverTarget != null) {
                 receiverTarget.val = currentValueJSON.val;
@@ -202,6 +202,4 @@ public class FloatParamRandomizer : MVRScript {
             SuperController.LogError("Exception caught: " + e);
         }
     }
-
-
 }
