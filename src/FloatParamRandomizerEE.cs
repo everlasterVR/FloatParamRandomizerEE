@@ -50,6 +50,11 @@ public class FloatParamRandomizerEE : MVRScript
             var titleTextField = CreateTitleTextField(titleJss, 72, false);
             titleTextField.UItext.fontSize = 36;
 
+            var versionJss = new JSONStorableString("version", VERSION);
+            var versionTextField = CreateTitleTextField(versionJss, 72, true);
+            versionTextField.UItext.fontSize = 24;
+            versionTextField.UItext.alignment = TextAnchor.UpperRight;
+
             _popups = new List<UIPopup>();
             CreateAtomChooser();
             CreateReceiverChooser();
@@ -58,7 +63,6 @@ public class FloatParamRandomizerEE : MVRScript
             // set atom to current atom to initialize
             _atomJsc.val = containingAtom.uid;
 
-            this.NewSpacer(72, true);
             _periodJsf = new JSONStorableFloat("period", 1f, 0f, 10f, false);
             RegisterFloat(_periodJsf);
             CreateSlider(_periodJsf, true);
