@@ -96,6 +96,7 @@
   <ItemGroup>
     <Content Include=".editorconfig" />
     <Content Include="package.sh" />
+    <Content Include="todo.md" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
