@@ -78,6 +78,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="src\CurveFunctions.cs" />
     <Compile Include="src\Extensions\MVRScriptExtensions.cs" />
     <Compile Include="src\Extensions\StringExtension.cs" />
     <Compile Include="src\FloatParamRandomizerEE.cs" />

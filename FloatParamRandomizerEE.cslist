@@ -1,3 +1,4 @@
+src\CurveFunctions.cs
 src\Extensions\StringExtension.cs
 src\Extensions\MVRScriptExtensions.cs
 src\FloatParamRandomizerEE.cs
