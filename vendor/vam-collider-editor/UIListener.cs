@@ -7,6 +7,7 @@ namespace ColliderEditor
     public class UIListener : MonoBehaviour, IPointerClickHandler
     {
         public readonly UnityEvent onDisabled = new UnityEvent();
+        public readonly UnityEvent onEnabled = new UnityEvent();
         public readonly UnityEvent onClick = new UnityEvent();
 
         public void OnPointerClick(PointerEventData eventData)
@@ -17,6 +18,11 @@ namespace ColliderEditor
         public void OnDisable()
         {
             onDisabled.Invoke();
+        }
+
+        public void OnEnable()
+        {
+            onEnabled.Invoke();
         }
 
         private void OnDestroy()

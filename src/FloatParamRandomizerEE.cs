@@ -1,9 +1,10 @@
 using System;
-using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using ColliderEditor;
+using UnityEngine;
 using UnityEngine.UI;
+using ColliderEditor;
 using static Utils;
 using static CurveFunctions;
 
@@ -192,9 +193,17 @@ public class FloatParamRandomizerEE : MVRScript
         _uiListener = UITransform.gameObject.AddComponent<UIListener>();
         if(_uiListener != null)
         {
+            _uiListener.onEnabled.AddListener(() => StartCoroutine(ActionsOnUIOpened()));
             _uiListener.onDisabled.AddListener(OnBlur);
             _uiListener.onClick.AddListener(OnBlur);
         }
+    }
+
+    private IEnumerator ActionsOnUIOpened()
+    {
+        yield return new WaitForEndOfFrame();
+        var background = rightUIContent.parent.parent.parent.transform.GetComponent<Image>();
+        background.color = new Color(0.75f, 0.75f, 0.75f);
     }
 
     private void OnBlur()
