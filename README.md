@@ -1,8 +1,8 @@
 # FloatParamRandomizerEE Virt-A-Mate Plugin
 
-Smoother transition from current value towards target value.
+Transition from current value towards target value with smoothing, bouncing or linearly.
 
-Hub resource page:
+Hub resource page: https://hub.virtamate.com/resources/floatparamrandomizeree.20883/
 
 ## Credit
 

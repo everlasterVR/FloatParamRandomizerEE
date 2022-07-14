@@ -19,6 +19,7 @@ publish_dir=publish/Custom/Scripts/$creator_name/$plugin_name
 mkdir -p $publish_dir
 cp meta.json publish/
 cp *.cslist $publish_dir/
+cp -r vendor $publish_dir/
 cp -r src $publish_dir/
 
 # Update version info
