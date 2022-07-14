@@ -2,7 +2,7 @@
 // ReSharper disable UnusedMember.Global
 using UnityEngine;
 
-public static class StringExtension
+public static class StringExtensions
 {
     public static string Bold(this string str) => $"<b>{str}</b>";
 

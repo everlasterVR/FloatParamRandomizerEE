@@ -26,10 +26,13 @@ public class FloatParamRandomizerEE : MVRScript
     private JSONStorableFloat _quicknessJsf;
     private JSONStorableFloat _lowerValueJsf;
     private JSONStorableFloat _upperValueJsf;
+    private JSONStorableBool _enableRandomness;
     private JSONStorableFloat _targetValueJsf;
     private JSONStorableFloat _currentValueJsf;
     private JSONStorableFloat _receiverTargetJsf;
     private JSONStorable _receiverStorable;
+
+    private UIDynamicSlider _targetValueSlider;
 
     private string _receiverTargetName;
     private Atom _receivingAtom;
@@ -72,7 +75,7 @@ public class FloatParamRandomizerEE : MVRScript
             RegisterFloat(_upperValueJsf);
             CreateSlider(_upperValueJsf, true);
 
-            this.NewSpacer(145);
+            this.NewSpacer(210);
             CreateFunctionChooser();
 
             _curvatureJsf = new JSONStorableFloat("curvature", 0.25f, 0.0f, 1.0f);
@@ -82,15 +85,22 @@ public class FloatParamRandomizerEE : MVRScript
             _functionJsc.val = _functionOptions.Keys.First();
 
             this.NewSpacer(10, true);
+
+            _enableRandomness = new JSONStorableBool("enableRandomness", true, SyncEnableRandomness);
+            var enableRandomnessToggle = CreateToggle(_enableRandomness, true);
+
             _targetValueJsf = new JSONStorableFloat("targetValue", 0f, 0f, 1f, false, false);
-            var targetValueSlider = CreateSlider(_targetValueJsf, true);
-            targetValueSlider.defaultButtonEnabled = false;
-            targetValueSlider.quickButtonsEnabled = false;
+            _targetValueSlider = CreateSlider(_targetValueJsf, true);
+            _targetValueSlider.slider.interactable = false;
+            _targetValueSlider.defaultButtonEnabled = false;
+            _targetValueSlider.quickButtonsEnabled = false;
 
             _currentValueJsf = new JSONStorableFloat("currentValue", 0f, 0f, 1f, false, false);
             var currentValueSlider = CreateSlider(_currentValueJsf, true);
             currentValueSlider.defaultButtonEnabled = false;
             currentValueSlider.quickButtonsEnabled = false;
+
+            SyncEnableRandomness(_enableRandomness.val);
         }
         catch(Exception e)
         {
@@ -300,6 +310,12 @@ public class FloatParamRandomizerEE : MVRScript
         }
     }
 
+    private void SyncEnableRandomness(bool value)
+    {
+        _targetValueJsf.val = value ? _targetValueJsf.val : _targetValueJsf.min;
+        _targetValueSlider.SetActiveStyle(value);
+    }
+
     private void SyncFunction(string option)
     {
         _function = _functionOptions[option];
@@ -316,8 +332,10 @@ public class FloatParamRandomizerEE : MVRScript
         }
     }
 
+    private bool _flip;
     private float _accumulated;
     private float _start;
+    private float _end;
 
     protected void Update()
     {
@@ -326,14 +344,23 @@ public class FloatParamRandomizerEE : MVRScript
             if(_accumulated > _periodJsf.val)
             {
                 _accumulated = 0f;
-                _start = _currentValueJsf.val;
-                _targetValueJsf.val = UnityEngine.Random.Range(_lowerValueJsf.val, _upperValueJsf.val);
+                if(_enableRandomness.val)
+                {
+                    _start = _currentValueJsf.val;
+                    _end = _targetValueJsf.val = UnityEngine.Random.Range(_lowerValueJsf.val, _upperValueJsf.val);
+                }
+                else
+                {
+                    _start = _flip ? _lowerValueJsf.val : _upperValueJsf.val;
+                    _end = _flip ? _upperValueJsf.val : _lowerValueJsf.val;
+                    _flip = !_flip;
+                }
             }
 
             _accumulated += Time.deltaTime;
 
             float value = _accumulated * _quicknessJsf.val / _periodJsf.val;
-            _currentValueJsf.val = Mathf.Lerp(_start, _targetValueJsf.val, _function(value));
+            _currentValueJsf.val = Mathf.Lerp(_start, _end, _function(value));
 
             CheckMissingReceiver();
             if(_receiverTargetJsf != null)
