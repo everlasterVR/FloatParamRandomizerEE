@@ -65,26 +65,31 @@ public class FloatParamRandomizerEE : MVRScript
 
             _periodJsf = new JSONStorableFloat("period", 1f, 0f, 10f, false);
             RegisterFloat(_periodJsf);
-            CreateSlider(_periodJsf, true);
+            var periodSlider = CreateSlider(_periodJsf, true);
+            periodSlider.label = "Period";
 
             _quicknessJsf = new JSONStorableFloat("quickness", 1f, 0f, 10f);
             RegisterFloat(_quicknessJsf);
-            CreateSlider(_quicknessJsf, true);
+            var quicknessSlider = CreateSlider(_quicknessJsf, true);
+            quicknessSlider.label = "Quickness";
 
             _lowerValueJsf = new JSONStorableFloat("lowerValue", 0f, 0f, 1f, false);
             RegisterFloat(_lowerValueJsf);
-            CreateSlider(_lowerValueJsf, true);
+            var lowerValueSlider = CreateSlider(_lowerValueJsf, true);
+            lowerValueSlider.label = "Lower Value";
 
             _upperValueJsf = new JSONStorableFloat("upperValue", 0f, 0f, 1f, false);
             RegisterFloat(_upperValueJsf);
-            CreateSlider(_upperValueJsf, true);
+            var upperValueSlider = CreateSlider(_upperValueJsf, true);
+            upperValueSlider.label = "Upper Value";
 
             this.NewSpacer(210);
             CreateFunctionChooser();
 
             _curvatureJsf = new JSONStorableFloat("curvature", 0.25f, 0.0f, 1.0f);
             RegisterFloat(_curvatureJsf);
-            CreateSlider(_curvatureJsf);
+            var curvatureSlider = CreateSlider(_curvatureJsf);
+            curvatureSlider.label = "Curvature";
 
             _functionJsc.val = _functionOptions.Keys.First();
 
@@ -92,17 +97,20 @@ public class FloatParamRandomizerEE : MVRScript
 
             _enableRandomness = new JSONStorableBool("enableRandomness", true, SyncEnableRandomness);
             var enableRandomnessToggle = CreateToggle(_enableRandomness, true);
+            enableRandomnessToggle.label = "Enable Randomness";
 
             _targetValueJsf = new JSONStorableFloat("targetValue", 0f, 0f, 1f, false, false);
             _targetValueSlider = CreateSlider(_targetValueJsf, true);
             _targetValueSlider.slider.interactable = false;
             _targetValueSlider.defaultButtonEnabled = false;
             _targetValueSlider.quickButtonsEnabled = false;
+            _targetValueSlider.label = "Target Value";
 
             _currentValueJsf = new JSONStorableFloat("currentValue", 0f, 0f, 1f, false, false);
             var currentValueSlider = CreateSlider(_currentValueJsf, true);
             currentValueSlider.defaultButtonEnabled = false;
             currentValueSlider.quickButtonsEnabled = false;
+            currentValueSlider.label = "Current Value";
 
             SyncEnableRandomness(_enableRandomness.val);
         }
