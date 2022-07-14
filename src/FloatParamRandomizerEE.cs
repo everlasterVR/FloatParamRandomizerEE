@@ -20,8 +20,8 @@ public class FloatParamRandomizerEE : MVRScript
     private JSONStorableStringChooser _atomJsc;
     private JSONStorableStringChooser _receiverJsc;
     private JSONStorableStringChooser _receiverTargetJsc;
+    private JSONStorableStringChooser _functionJsc;
     private JSONStorableFloat _curvatureJsf;
-    private JSONStorableFloat _midPointJsf;
     private JSONStorableFloat _periodJsf;
     private JSONStorableFloat _quicknessJsf;
     private JSONStorableFloat _lowerValueJsf;
@@ -34,8 +34,10 @@ public class FloatParamRandomizerEE : MVRScript
     private string _receiverTargetName;
     private Atom _receivingAtom;
 
-    private void SetCurvature(float value) => _curvature = Mathf.Lerp(-1 / 3f, 0.95f, value);
-    private float _curvature;
+    private Dictionary<string, Func<float, float>> _functionOptions;
+    private Func<float, float> _function;
+    private float _exponent;
+    private const float MIDPOINT = 0.5f;
 
     public override void Init()
     {
@@ -53,44 +55,38 @@ public class FloatParamRandomizerEE : MVRScript
             // set atom to current atom to initialize
             _atomJsc.val = containingAtom.uid;
 
-            _curvatureJsf = new JSONStorableFloat("curvature", 0.25f, 0.0f, 1.0f);
-            RegisterFloat(_curvatureJsf);
-            CreateSlider(_curvatureJsf);
-            _curvatureJsf.setCallbackFunction = SetCurvature;
-            SetCurvature(_curvatureJsf.val);
-
-            // _midPointJsf = new JSONStorableFloat("midPoint", 0.5f, 0.0f, 1.0f);
-            // RegisterFloat(_midPointJsf);
-            // CreateSlider(_midPointJsf);
-
             this.NewSpacer(72, true);
-            // create random value generation period
             _periodJsf = new JSONStorableFloat("period", 1f, 0f, 10f, false);
             RegisterFloat(_periodJsf);
             CreateSlider(_periodJsf, true);
 
-            // quickness (smoothness)
             _quicknessJsf = new JSONStorableFloat("quickness", 1f, 0f, 10f);
             RegisterFloat(_quicknessJsf);
             CreateSlider(_quicknessJsf, true);
 
-            // lower val
             _lowerValueJsf = new JSONStorableFloat("lowerValue", 0f, 0f, 1f, false);
             RegisterFloat(_lowerValueJsf);
             CreateSlider(_lowerValueJsf, true);
 
-            // upper val
             _upperValueJsf = new JSONStorableFloat("upperValue", 0f, 0f, 1f, false);
             RegisterFloat(_upperValueJsf);
             CreateSlider(_upperValueJsf, true);
 
-            // target val
+            this.NewSpacer(145);
+            CreateFunctionChooser();
+
+            _curvatureJsf = new JSONStorableFloat("curvature", 0.25f, 0.0f, 1.0f);
+            RegisterFloat(_curvatureJsf);
+            CreateSlider(_curvatureJsf);
+
+            _functionJsc.val = _functionOptions.Keys.First();
+
+            this.NewSpacer(10, true);
             _targetValueJsf = new JSONStorableFloat("targetValue", 0f, 0f, 1f, false, false);
             var targetValueSlider = CreateSlider(_targetValueJsf, true);
             targetValueSlider.defaultButtonEnabled = false;
             targetValueSlider.quickButtonsEnabled = false;
 
-            // current val
             _currentValueJsf = new JSONStorableFloat("currentValue", 0f, 0f, 1f, false, false);
             var currentValueSlider = CreateSlider(_currentValueJsf, true);
             currentValueSlider.defaultButtonEnabled = false;
@@ -137,6 +133,19 @@ public class FloatParamRandomizerEE : MVRScript
         _receiverTargetJsc = new JSONStorableStringChooser("receiverTarget", null, null, "Target", SyncReceiverTarget);
         RegisterStringChooser(_receiverTargetJsc);
         NewPopup(_receiverTargetJsc, 720);
+    }
+
+    private void CreateFunctionChooser()
+    {
+        // any function can be added here as long as it takes an x in range [0, 1] and outputs an y in range [0, 1]
+        _functionOptions = new Dictionary<string, Func<float, float>>()
+        {
+            { "Ease In-Out", value => ParametricSmoother(value, _exponent, MIDPOINT) },
+            { "Bounce In-Out", value => ParametricSmoother(value, _exponent, MIDPOINT) },
+        };
+        _functionJsc = new JSONStorableStringChooser("function", _functionOptions.Keys.ToList(), null, "Function", SyncFunction);
+        RegisterStringChooser(_functionJsc);
+        NewPopup(_functionJsc, 160); //425
     }
 
     private UIDynamicPopup NewPopup(JSONStorableStringChooser jsc, int panelHeight)
@@ -291,6 +300,22 @@ public class FloatParamRandomizerEE : MVRScript
         }
     }
 
+    private void SyncFunction(string option)
+    {
+        _function = _functionOptions[option];
+        switch(option)
+        {
+            case "Ease In-Out":
+                _curvatureJsf.setCallbackFunction = value => _exponent = EaseInOutExponent(value, MIDPOINT);
+                _exponent = EaseInOutExponent(_curvatureJsf.val, MIDPOINT);
+                break;
+            case "Bounce In-Out":
+                _curvatureJsf.setCallbackFunction = value => _exponent = BounceInOutExponent(value, MIDPOINT);
+                _exponent = BounceInOutExponent(_curvatureJsf.val, MIDPOINT);
+                break;
+        }
+    }
+
     private float _accumulated;
     private float _start;
 
@@ -308,8 +333,7 @@ public class FloatParamRandomizerEE : MVRScript
             _accumulated += Time.deltaTime;
 
             float value = _accumulated * _quicknessJsf.val / _periodJsf.val;
-            float smoothedValue = ParametricSmoother(value, _curvature, 0.5f);
-            _currentValueJsf.val = Mathf.Lerp(_start, _targetValueJsf.val, smoothedValue);
+            _currentValueJsf.val = Mathf.Lerp(_start, _targetValueJsf.val, _function(value));
 
             CheckMissingReceiver();
             if(_receiverTargetJsf != null)
