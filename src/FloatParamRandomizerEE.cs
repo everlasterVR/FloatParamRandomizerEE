@@ -31,12 +31,12 @@ public class FloatParamRandomizerEE : MVRScript
     private JSONStorableFloat _targetValueJsf;
     private JSONStorableFloat _currentValueJsf;
     private JSONStorableFloat _receiverTargetJsf;
-    private JSONStorable _receiverStorable;
 
     private UIDynamicSlider _targetValueSlider;
 
     private string _receiverTargetName;
     private Atom _receivingAtom;
+    private JSONStorable _receiverStorable;
 
     private Dictionary<string, Func<float, float>> _functionOptions;
     private Func<float, float> _function;
@@ -222,11 +222,7 @@ public class FloatParamRandomizerEE : MVRScript
     {
         var atomChoices = new List<string>();
         atomChoices.Add("None");
-        foreach(string atomUID in SuperController.singleton.GetAtomUIDs())
-        {
-            atomChoices.Add(atomUID);
-        }
-
+        atomChoices.AddRange(SuperController.singleton.GetAtomUIDs());
         _atomJsc.choices = atomChoices;
     }
 
@@ -239,11 +235,7 @@ public class FloatParamRandomizerEE : MVRScript
             _receivingAtom = SuperController.singleton.GetAtomByUid(atomUID);
             if(_receivingAtom != null)
             {
-                foreach(string receiverChoice in _receivingAtom.GetStorableIDs())
-                {
-                    receiverChoices.Add(receiverChoice);
-                    //SuperController.LogMessage("Found receiver " + receiverChoice);
-                }
+                receiverChoices.AddRange(_receivingAtom.GetStorableIDs());
             }
         }
         else
@@ -283,10 +275,7 @@ public class FloatParamRandomizerEE : MVRScript
             _receiverStorable = _receivingAtom.GetStorableByID(receiverID);
             if(_receiverStorable != null)
             {
-                foreach(string floatParam in _receiverStorable.GetFloatParamNames())
-                {
-                    receiverTargetChoices.Add(floatParam);
-                }
+                receiverTargetChoices.AddRange(_receiverStorable.GetFloatParamNames());
             }
             else if(receiverID != "None")
             {
