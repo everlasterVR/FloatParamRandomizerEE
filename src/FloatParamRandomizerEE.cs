@@ -97,6 +97,7 @@ public class FloatParamRandomizerEE : MVRScript
             this.NewSpacer(10, true);
 
             _enableRandomness = new JSONStorableBool("enableRandomness", true, SyncEnableRandomness);
+            RegisterBool(_enableRandomness);
             var enableRandomnessToggle = CreateToggle(_enableRandomness, true);
             enableRandomnessToggle.label = "Enable Randomness";
 
