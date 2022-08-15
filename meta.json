@@ -1,9 +1,5 @@
 {
-   "licenseType" : "PC EA",
-   "EAEndYear": "2022",
-   "EAEndMonth": "Aug",
-   "EAEndDay": "04",
-   "secondaryLicenseType": "CC BY-SA",
+   "licenseType" : "CC BY-SA",
    "creatorName" : "everlaster",
    "packageName" : "FloatParamRandomizerEE",
    "standardReferenceVersionOption" : "Latest",

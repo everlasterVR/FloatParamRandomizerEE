@@ -169,7 +169,7 @@ public class FloatParamRandomizerEE : MVRScript
         };
         _functionJsc = new JSONStorableStringChooser("function", _functionOptions.Keys.ToList(), null, "Function", SyncFunction);
         RegisterStringChooser(_functionJsc);
-        NewPopup(_functionJsc, 160); //425
+        NewPopup(_functionJsc, 160);
     }
 
     private UIDynamicPopup NewPopup(JSONStorableStringChooser jsc, int panelHeight)
