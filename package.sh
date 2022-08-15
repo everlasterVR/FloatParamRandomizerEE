@@ -2,17 +2,10 @@
 creator_name=everlaster
 plugin_name=FloatParamRandomizerEE
 package_version=$1
-plugin_version=$2
+plugin_version=$(git tag --points-at HEAD)
 
-usage()
-{
-    echo "Usage: ./package.sh <VarPackageVersion> <PluginVersion>"
-    echo "e.g.   ./package.sh 1 1.0.0"
-    exit 1
-}
-
-[ -z "$package_version" ] && usage
-[ -z "$plugin_version" ] && usage
+[ -z "$package_version" ] && printf "Usage: ./package.sh [var package version]\n" && exit 1
+[ -z "$plugin_version" ] && printf "Git tag not set on current commit.\n" && exit 1
 
 # Setup archive contents
 publish_dir=publish/Custom/Scripts/$creator_name/$plugin_name
