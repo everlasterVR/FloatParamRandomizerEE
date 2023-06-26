@@ -19,10 +19,10 @@ public static class CurveFunctions
     }
 
     // Adjusts the curvature such that a value of 0 is always a straight line regardless of midpoint
-    private static float AdjustedCurvature(float curvature, float midpoint) =>
+    static float AdjustedCurvature(float curvature, float midpoint) =>
         (curvature - 1) * (midpoint - 1) / (midpoint + 1);
 
-    private static float F1(float value, float n, float c) =>
+    static float F1(float value, float n, float c) =>
         Mathf.Pow(value, c) / Mathf.Pow(n, c - 1);
 
     /// <summary>

@@ -17,31 +17,31 @@ public class FloatParamRandomizerEE : MVRScript
 {
     public const string VERSION = "v0.0.0";
 
-    private List<UIPopup> _popups;
-    private JSONStorableStringChooser _atomJsc;
-    private JSONStorableStringChooser _receiverJsc;
-    private JSONStorableStringChooser _receiverTargetJsc;
-    private JSONStorableStringChooser _functionJsc;
-    private JSONStorableFloat _curvatureJsf;
-    private JSONStorableFloat _periodJsf;
-    private JSONStorableFloat _quicknessJsf;
-    private JSONStorableFloat _lowerValueJsf;
-    private JSONStorableFloat _upperValueJsf;
-    private JSONStorableBool _enableRandomness;
-    private JSONStorableFloat _targetValueJsf;
-    private JSONStorableFloat _currentValueJsf;
-    private JSONStorableFloat _receiverTargetJsf;
+    List<UIPopup> _popups;
+    JSONStorableStringChooser _atomJsc;
+    JSONStorableStringChooser _receiverJsc;
+    JSONStorableStringChooser _receiverTargetJsc;
+    JSONStorableStringChooser _functionJsc;
+    JSONStorableFloat _curvatureJsf;
+    JSONStorableFloat _periodJsf;
+    JSONStorableFloat _quicknessJsf;
+    JSONStorableFloat _lowerValueJsf;
+    JSONStorableFloat _upperValueJsf;
+    JSONStorableBool _enableRandomness;
+    JSONStorableFloat _targetValueJsf;
+    JSONStorableFloat _currentValueJsf;
+    JSONStorableFloat _receiverTargetJsf;
 
-    private UIDynamicSlider _targetValueSlider;
+    UIDynamicSlider _targetValueSlider;
 
-    private string _receiverTargetName;
-    private Atom _receivingAtom;
-    private JSONStorable _receiverStorable;
+    string _receiverTargetName;
+    Atom _receivingAtom;
+    JSONStorable _receiverStorable;
 
-    private Dictionary<string, Func<float, float>> _functionOptions;
-    private Func<float, float> _function;
-    private float _exponent;
-    private const float MIDPOINT = 0.5f;
+    Dictionary<string, Func<float, float>> _functionOptions;
+    Func<float, float> _function;
+    float _exponent;
+    const float MIDPOINT = 0.5f;
 
     public override void Init()
     {
@@ -51,7 +51,11 @@ public class FloatParamRandomizerEE : MVRScript
             var titleTextField = CreateTitleTextField(titleJss, 72, false);
             titleTextField.UItext.fontSize = 36;
 
-            var versionJss = new JSONStorableString("version", VERSION);
+            var versionJss = new JSONStorableString("version", VERSION)
+            {
+                storeType = JSONStorableParam.StoreType.Full,
+            };
+            RegisterString(versionJss);
             var versionTextField = CreateTitleTextField(versionJss, 72, true);
             versionTextField.UItext.fontSize = 24;
             versionTextField.UItext.alignment = TextAnchor.UpperRight;
@@ -122,7 +126,7 @@ public class FloatParamRandomizerEE : MVRScript
         }
     }
 
-    private UIDynamicTextField CreateTitleTextField(JSONStorableString jss, int height, bool rightSide)
+    UIDynamicTextField CreateTitleTextField(JSONStorableString jss, int height, bool rightSide)
     {
         var textField = CreateTextField(jss, rightSide);
         textField.UItext.alignment = TextAnchor.MiddleCenter;
@@ -135,34 +139,36 @@ public class FloatParamRandomizerEE : MVRScript
         return textField;
     }
 
-    private void CreateAtomChooser()
+    void CreateAtomChooser()
     {
-        _atomJsc = new JSONStorableStringChooser("atom", SuperController.singleton.GetAtomUIDs(), null, "Atom", SyncAtom);
-        _atomJsc.representsAtomUid = true;
+        _atomJsc = new JSONStorableStringChooser("atom", SuperController.singleton.GetAtomUIDs(), null, "Atom", SyncAtom)
+        {
+            representsAtomUid = true,
+        };
         RegisterStringChooser(_atomJsc);
         SyncAtomChoices();
         var uiDynamicPopup = NewPopup(_atomJsc, 1000);
         uiDynamicPopup.popup.onOpenPopupHandlers += SyncAtomChoices;
     }
 
-    private void CreateReceiverChooser()
+    void CreateReceiverChooser()
     {
         _receiverJsc = new JSONStorableStringChooser("receiver", null, null, "Receiver", SyncReceiver);
         RegisterStringChooser(_receiverJsc);
         NewPopup(_receiverJsc, 860);
     }
 
-    private void CreateReceiverTargetChooser()
+    void CreateReceiverTargetChooser()
     {
         _receiverTargetJsc = new JSONStorableStringChooser("receiverTarget", null, null, "Target", SyncReceiverTarget);
         RegisterStringChooser(_receiverTargetJsc);
         NewPopup(_receiverTargetJsc, 720);
     }
 
-    private void CreateFunctionChooser()
+    void CreateFunctionChooser()
     {
         // any function can be added here as long as it takes an x in range [0, 1] and outputs an y in range [0, 1]
-        _functionOptions = new Dictionary<string, Func<float, float>>()
+        _functionOptions = new Dictionary<string, Func<float, float>>
         {
             { "Ease In-Out", value => ParametricSmoother(value, _exponent, MIDPOINT) },
             { "Bounce In-Out", value => ParametricSmoother(value, _exponent, MIDPOINT) },
@@ -172,7 +178,7 @@ public class FloatParamRandomizerEE : MVRScript
         NewPopup(_functionJsc, 160);
     }
 
-    private UIDynamicPopup NewPopup(JSONStorableStringChooser jsc, int panelHeight)
+    UIDynamicPopup NewPopup(JSONStorableStringChooser jsc, int panelHeight)
     {
         var uiDynamicPopup = this.CreatePopupAuto(jsc);
         uiDynamicPopup.popupPanelHeight = panelHeight;
@@ -181,59 +187,57 @@ public class FloatParamRandomizerEE : MVRScript
         return uiDynamicPopup;
     }
 
-    private UIListener _uiListener;
+    UnityEventsListener _pluginUIEventsListener;
 
     public override void InitUI()
     {
         base.InitUI();
-        if(UITransform == null || _uiListener != null)
+        if(UITransform == null || _pluginUIEventsListener != null)
         {
             return;
         }
 
-        _uiListener = UITransform.gameObject.AddComponent<UIListener>();
-        if(_uiListener != null)
+        _pluginUIEventsListener = UITransform.gameObject.AddComponent<UnityEventsListener>();
+        if(_pluginUIEventsListener != null)
         {
-            _uiListener.onEnabled.AddListener(() => StartCoroutine(ActionsOnUIOpened()));
-            _uiListener.onDisabled.AddListener(OnBlur);
-            _uiListener.onClick.AddListener(OnBlur);
+            _pluginUIEventsListener.EnableHandlers += () => StartCoroutine(ActionsOnUIOpened());
+            _pluginUIEventsListener.DisableHandlers += OnBlur;
+            _pluginUIEventsListener.ClickHandlers += OnBlur;
         }
     }
 
-    private IEnumerator ActionsOnUIOpened()
+    IEnumerator ActionsOnUIOpened()
     {
         yield return new WaitForEndOfFrame();
         var background = rightUIContent.parent.parent.parent.transform.GetComponent<Image>();
-        background.color = new Color(0.75f, 0.75f, 0.75f);
+        background.color = new Color(0.85f, 0.85f, 0.85f);
     }
 
-    private void OnBlur()
+    void OnBlur()
     {
         OnBlurPopup(null);
     }
 
-    private void OnBlurPopup(UIPopup openedPopup)
+    void OnBlurPopup(UIPopup openedPopup)
     {
         _popups.Where(popup => popup != openedPopup)
             .ToList()
             .ForEach(popup => popup.visible = false);
     }
 
-    private void SyncAtomChoices()
+    void SyncAtomChoices()
     {
-        var atomChoices = new List<string>();
-        atomChoices.Add("None");
+        var atomChoices = new List<string> { "None" };
         atomChoices.AddRange(SuperController.singleton.GetAtomUIDs());
         _atomJsc.choices = atomChoices;
     }
 
-    private void SyncAtom(string atomUID)
+    void SyncAtom(string uid)
     {
-        var receiverChoices = new List<string>();
-        receiverChoices.Add("None");
-        if(atomUID != null)
+        var receiverChoices = new List<string> { "None" };
+        if(uid != null)
         {
-            _receivingAtom = SuperController.singleton.GetAtomByUid(atomUID);
+            _receivingAtom = SuperController.singleton.GetAtomByUid(uid);
             if(_receivingAtom != null)
             {
                 receiverChoices.AddRange(_receivingAtom.GetStorableIDs());
@@ -248,14 +252,14 @@ public class FloatParamRandomizerEE : MVRScript
         _receiverJsc.val = "None";
     }
 
-    private string _missingReceiverStoreId = "";
+    string _missingReceiverStoreId = "";
 
-    private void CheckMissingReceiver()
+    void CheckMissingReceiver()
     {
-        if(_missingReceiverStoreId != "" && _receivingAtom != null)
+        if(_missingReceiverStoreId != "" && _receivingAtom)
         {
             var missingReceiver = _receivingAtom.GetStorableByID(_missingReceiverStoreId);
-            if(missingReceiver != null)
+            if(missingReceiver)
             {
                 string saveTargetName = _receiverTargetName;
                 SyncReceiver(_missingReceiverStoreId);
@@ -267,14 +271,13 @@ public class FloatParamRandomizerEE : MVRScript
         }
     }
 
-    private void SyncReceiver(string receiverID)
+    void SyncReceiver(string receiverID)
     {
-        var receiverTargetChoices = new List<string>();
-        receiverTargetChoices.Add("None");
-        if(_receivingAtom != null && receiverID != null)
+        var receiverTargetChoices = new List<string> { "None" };
+        if(_receivingAtom  && receiverID != null)
         {
             _receiverStorable = _receivingAtom.GetStorableByID(receiverID);
-            if(_receiverStorable != null)
+            if(_receiverStorable)
             {
                 receiverTargetChoices.AddRange(_receiverStorable.GetFloatParamNames());
             }
@@ -293,7 +296,7 @@ public class FloatParamRandomizerEE : MVRScript
         _receiverTargetJsc.val = "None";
     }
 
-    private void SyncReceiverTarget(string receiverTargetName)
+    void SyncReceiverTarget(string receiverTargetName)
     {
         _receiverTargetName = receiverTargetName;
         _receiverTargetJsf = null;
@@ -321,13 +324,13 @@ public class FloatParamRandomizerEE : MVRScript
         }
     }
 
-    private void SyncEnableRandomness(bool value)
+    void SyncEnableRandomness(bool value)
     {
         _targetValueJsf.val = value ? _targetValueJsf.val : _targetValueJsf.min;
         _targetValueSlider.SetActiveStyle(value);
     }
 
-    private void SyncFunction(string option)
+    void SyncFunction(string option)
     {
         _function = _functionOptions[option];
         switch(option)
@@ -343,10 +346,10 @@ public class FloatParamRandomizerEE : MVRScript
         }
     }
 
-    private bool _flip;
-    private float _accumulated;
-    private float _start;
-    private float _end;
+    bool _flip;
+    float _accumulated;
+    float _start;
+    float _end;
 
     protected void Update()
     {
@@ -389,9 +392,9 @@ public class FloatParamRandomizerEE : MVRScript
     {
         try
         {
-            if(_uiListener != null)
+            if(_pluginUIEventsListener != null)
             {
-                DestroyImmediate(_uiListener);
+                DestroyImmediate(_pluginUIEventsListener);
             }
         }
         catch(Exception e)

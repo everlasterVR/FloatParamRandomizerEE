@@ -1,3 +1,4 @@
+src\Components\UnityEventsListener.cs
 src\CurveFunctions.cs
 src\Extensions\MVRScriptExtensions.cs
 src\Extensions\StringExtensions.cs
@@ -5,4 +6,3 @@ src\Extensions\UIDynamicExtensions.cs
 src\FloatParamRandomizerEE.cs
 src\Utils.cs
 vendor\vam-collider-editor\MVRScriptExtensions.cs
-vendor\vam-collider-editor\UIListener.cs

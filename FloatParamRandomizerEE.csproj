@@ -78,6 +78,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="src\Components\UnityEventsListener.cs" />
     <Compile Include="src\CurveFunctions.cs" />
     <Compile Include="src\Extensions\MVRScriptExtensions.cs" />
     <Compile Include="src\Extensions\StringExtensions.cs" />
@@ -85,7 +86,6 @@
     <Compile Include="src\FloatParamRandomizerEE.cs" />
     <Compile Include="src\Utils.cs" />
     <Compile Include="vendor\vam-collider-editor\MVRScriptExtensions.cs" />
-    <Compile Include="vendor\vam-collider-editor\UIListener.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
@@ -94,9 +94,7 @@
     <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include=".editorconfig" />
     <Content Include="package.sh" />
-    <Content Include="todo.md" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

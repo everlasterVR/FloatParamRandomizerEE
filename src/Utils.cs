@@ -6,6 +6,6 @@
     public static void LogMessage(string message) =>
         SuperController.LogMessage(Format(message));
 
-    private static string Format(string message) =>
+    static string Format(string message) =>
         $"{nameof(FloatParamRandomizerEE)} {FloatParamRandomizerEE.VERSION}: {message}";
 }

@@ -74,7 +74,7 @@ namespace ColliderEditor
             return popup;
         }
 
-        private static Transform InstantiateButtonTransform(this MVRScript script) => Object
+        static Transform InstantiateButtonTransform(this MVRScript script) => Object
             .Instantiate(script.manager.configurableButtonPrefab);
     }
 }
