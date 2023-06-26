@@ -89,12 +89,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
-    <None Include="FloatParamRandomizerEE.cslist" />
     <None Include="meta.json" />
     <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="package.sh" />
+    <Content Include="scripts\generate_cslist.sh" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
