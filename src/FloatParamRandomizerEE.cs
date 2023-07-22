@@ -6,7 +6,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using ColliderEditor;
 using SimpleJSON;
-using static Utils;
 using static CurveFunctions;
 
 /// <summary>
@@ -19,10 +18,10 @@ public class FloatParamRandomizerEE : MVRScript
     public const string VERSION = "0.0.0";
 
     List<UIPopup> _popups;
-    JSONStorableStringChooser _atomJsc;
-    JSONStorableStringChooser _receiverJsc;
-    JSONStorableStringChooser _receiverTargetJsc;
-    JSONStorableStringChooser _functionJsc;
+    JSONStorableStringChooser _atomJssc;
+    JSONStorableStringChooser _receiverJssc;
+    JSONStorableStringChooser _receiverTargetJssc;
+    JSONStorableStringChooser _functionJssc;
     JSONStorableFloat _curvatureJsf;
     JSONStorableFloat _periodJsf;
     JSONStorableFloat _quicknessJsf;
@@ -99,7 +98,7 @@ public class FloatParamRandomizerEE : MVRScript
             var curvatureSlider = CreateSlider(_curvatureJsf);
             curvatureSlider.label = "Curvature";
 
-            _functionJsc.val = _functionOptions.Keys.First();
+            _functionJssc.val = _functionOptions.Keys.First();
 
             this.NewSpacer(10, true);
 
@@ -127,14 +126,14 @@ public class FloatParamRandomizerEE : MVRScript
 
             if(!_restoringFromJSON)
             {
-                _atomJsc.val = containingAtom.uid;
+                _atomJssc.val = containingAtom.uidWithoutSubScenePath;
             }
 
             _initialized = true;
         }
         catch(Exception e)
         {
-            LogError($"{e}");
+            Utils.LogError($"{e}");
         }
     }
 
@@ -153,24 +152,27 @@ public class FloatParamRandomizerEE : MVRScript
 
     void CreateAtomChooser()
     {
-        _atomJsc = new JSONStorableStringChooser("atom", SuperController.singleton.GetAtomUIDs(), null, "Atom", SyncAtom);
-        RegisterStringChooser(_atomJsc);
-        var uiDynamicPopup = NewPopup(_atomJsc, 1000);
+        _atomJssc = new JSONStorableStringChooser("atom", new List<string>(), null, "Atom", SyncAtom)
+        {
+            representsAtomUid = true,
+        };
+        RegisterStringChooser(_atomJssc);
+        var uiDynamicPopup = NewPopup(_atomJssc, 1000);
         uiDynamicPopup.popup.onOpenPopupHandlers += SyncAtomChoices;
     }
 
     void CreateReceiverChooser()
     {
-        _receiverJsc = new JSONStorableStringChooser("receiver", null, null, "Receiver", SyncReceiver);
-        RegisterStringChooser(_receiverJsc);
-        NewPopup(_receiverJsc, 860);
+        _receiverJssc = new JSONStorableStringChooser("receiver", null, null, "Receiver", SyncReceiver);
+        RegisterStringChooser(_receiverJssc);
+        NewPopup(_receiverJssc, 860);
     }
 
     void CreateReceiverTargetChooser()
     {
-        _receiverTargetJsc = new JSONStorableStringChooser("receiverTarget", null, null, "Target", SyncReceiverTarget);
-        RegisterStringChooser(_receiverTargetJsc);
-        NewPopup(_receiverTargetJsc, 720);
+        _receiverTargetJssc = new JSONStorableStringChooser("receiverTarget", null, null, "Target", SyncReceiverTarget);
+        RegisterStringChooser(_receiverTargetJssc);
+        NewPopup(_receiverTargetJssc, 720);
     }
 
     void CreateFunctionChooser()
@@ -181,9 +183,9 @@ public class FloatParamRandomizerEE : MVRScript
             { "Ease In-Out", value => ParametricSmoother(value, _exponent, MIDPOINT) },
             { "Bounce In-Out", value => ParametricSmoother(value, _exponent, MIDPOINT) },
         };
-        _functionJsc = new JSONStorableStringChooser("function", _functionOptions.Keys.ToList(), null, "Function", SyncFunction);
-        RegisterStringChooser(_functionJsc);
-        NewPopup(_functionJsc, 160);
+        _functionJssc = new JSONStorableStringChooser("function", _functionOptions.Keys.ToList(), null, "Function", SyncFunction);
+        RegisterStringChooser(_functionJssc);
+        NewPopup(_functionJssc, 160);
     }
 
     UIDynamicPopup NewPopup(JSONStorableStringChooser jsc, int panelHeight)
@@ -230,17 +232,33 @@ public class FloatParamRandomizerEE : MVRScript
 
     void SyncAtomChoices()
     {
-        var atomChoices = new List<string> { "None" };
-        atomChoices.AddRange(SuperController.singleton.GetAtomUIDs());
-        _atomJsc.choices = atomChoices;
+        var options = new List<string> { "None" };
+        var displayOptions = new List<string> { "None" };
+        foreach(var atom in SuperController.singleton.GetAtoms())
+        {
+            options.Add(atom.uidWithoutSubScenePath);
+            displayOptions.Add(atom.uid);
+        }
+
+        _atomJssc.choices = options;
+        _atomJssc.displayChoices = displayOptions;
     }
 
-    void SyncAtom(string uid)
+    void SyncAtom(string value)
     {
+        /* Find by display option: hacky workaround to RestoreFromJSON not working correctly when loading a SubScene (bug in VAM).
+         * The SubScene JSON saves the atom chooser value without the subscene path. This value must be mapped to the uid (stored in display options),
+         * but VAM doesn't natively do that when it restores the JSONStorableStringChooser during a subscene load.
+         *
+         * To ensure all restores work consistently, this plugin stores without the subscene path in *all* JSONs (scene, plugin preset etc),
+         * and *always* finds the atom by mapping that to the display value which contains the subscene path.
+         */
+        string displayValue = OptionToDisplayOption(_atomJssc, value);
+        Debug.Log($"SyncAtom: uid {value}, displayValue {displayValue}, subScenePrefix {subScenePrefix}");
         var receiverChoices = new List<string> { "None" };
-        if(uid != null)
+        if(value != null)
         {
-            _receivingAtom = SuperController.singleton.GetAtomByUid(uid);
+            _receivingAtom = SuperController.singleton.GetAtoms().FirstOrDefault(atom => atom.uid == displayValue);
             if(_receivingAtom != null)
             {
                 receiverChoices.AddRange(_receivingAtom.GetStorableIDs());
@@ -251,8 +269,32 @@ public class FloatParamRandomizerEE : MVRScript
             _receivingAtom = null;
         }
 
-        _receiverJsc.choices = receiverChoices;
-        _receiverJsc.valNoCallback = "None";
+        _receiverJssc.choices = receiverChoices;
+        _receiverJssc.valNoCallback = "None";
+    }
+
+    static string OptionToDisplayOption(JSONStorableStringChooser jssc, string value)
+    {
+        var popup = jssc.popup;
+        if(popup == null)
+        {
+            return null;
+        }
+
+        int i = Array.IndexOf(jssc.popup.popupValues, value);
+        return i == -1 ? null : jssc.popup.displayPopupValues[i];
+    }
+
+    static string DisplayOptionToOption(JSONStorableStringChooser jssc, string value)
+    {
+        var popup = jssc.popup;
+        if(popup == null)
+        {
+            return null;
+        }
+
+        int i = Array.IndexOf(jssc.popup.displayPopupValues, value);
+        return i == -1 ? null : jssc.popup.popupValues[i];
     }
 
     string _missingReceiverStoreId = "";
@@ -268,7 +310,7 @@ public class FloatParamRandomizerEE : MVRScript
                 SyncReceiver(_missingReceiverStoreId);
                 _missingReceiverStoreId = "";
                 insideRestore = true;
-                _receiverTargetJsc.val = saveTargetName;
+                _receiverTargetJssc.val = saveTargetName;
                 insideRestore = false;
             }
         }
@@ -295,8 +337,8 @@ public class FloatParamRandomizerEE : MVRScript
             _receiverStorable = null;
         }
 
-        _receiverTargetJsc.choices = receiverTargetChoices;
-        _receiverTargetJsc.valNoCallback = "None";
+        _receiverTargetJssc.choices = receiverTargetChoices;
+        _receiverTargetJssc.valNoCallback = "None";
     }
 
     void SyncReceiverTarget(string receiverTargetName)
@@ -387,17 +429,42 @@ public class FloatParamRandomizerEE : MVRScript
         }
         catch(Exception e)
         {
-            LogError($"{e}");
+            Utils.LogError($"{e}");
         }
     }
 
     void OnAtomRenamed(string oldName, string newName)
     {
+        string oldValue = DisplayOptionToOption(_atomJssc, oldName);
         SyncAtomChoices();
-        if(_atomJsc.val == oldName)
+        var renamedAtom = SuperController.singleton.GetAtomByUid(newName);
+
+        if(_atomJssc.val == oldValue)
         {
-            _atomJsc.valNoCallback = newName;
+            _atomJssc.valNoCallback = "";
+            _atomJssc.valNoCallback = renamedAtom.uidWithoutSubScenePath;
         }
+        else if(renamedAtom.isSubSceneType)
+        {
+            foreach(var atom in renamedAtom.subSceneComponent.atomsInSubScene)
+            {
+                if(_atomJssc.val == atom.uidWithoutSubScenePath)
+                {
+                    _atomJssc.valNoCallback = "";
+                    _atomJssc.valNoCallback = atom.uidWithoutSubScenePath;
+                }
+            }
+        }
+    }
+
+    public override JSONClass GetJSON(bool includePhysical = true, bool includeAppearance = true, bool forceStore = false)
+    {
+        var jc = base.GetJSON(includePhysical, includeAppearance, forceStore);
+        /* representsAtomUid = true causes this to be empty because the val doesn't map to an atom by uid, but by uidWithoutSubScenePath.
+         * Setting the value manually forces the value to be stored in the subscene save JSON.
+         */
+        jc["atom"] = _atomJssc.val;
+        return jc;
     }
 
     public override void RestoreFromJSON(
@@ -442,7 +509,7 @@ public class FloatParamRandomizerEE : MVRScript
         }
         catch(Exception e)
         {
-            LogError($"{e}");
+            Utils.LogError($"{e}");
         }
     }
 }
