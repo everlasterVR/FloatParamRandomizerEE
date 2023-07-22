@@ -141,10 +141,7 @@ public class FloatParamRandomizerEE : MVRScript
 
     void CreateAtomChooser()
     {
-        _atomJsc = new JSONStorableStringChooser("atom", SuperController.singleton.GetAtomUIDs(), null, "Atom", SyncAtom)
-        {
-            representsAtomUid = true,
-        };
+        _atomJsc = new JSONStorableStringChooser("atom", SuperController.singleton.GetAtomUIDs(), null, "Atom", SyncAtom);
         RegisterStringChooser(_atomJsc);
         SyncAtomChoices();
         var uiDynamicPopup = NewPopup(_atomJsc, 1000);
