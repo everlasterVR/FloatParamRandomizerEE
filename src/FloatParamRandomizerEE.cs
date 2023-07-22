@@ -65,6 +65,8 @@ public class FloatParamRandomizerEE : MVRScript
             CreateReceiverChooser();
             CreateReceiverTargetChooser();
 
+            SyncAtomChoices();
+
             // set atom to current atom to initialize
             _atomJsc.val = containingAtom.uid;
 
@@ -119,6 +121,8 @@ public class FloatParamRandomizerEE : MVRScript
             currentValueSlider.label = "Current Value";
 
             SyncEnableRandomness(_enableRandomness.val);
+
+            SuperController.singleton.onAtomUIDRenameHandlers += OnAtomRenamed;
         }
         catch(Exception e)
         {
@@ -143,7 +147,6 @@ public class FloatParamRandomizerEE : MVRScript
     {
         _atomJsc = new JSONStorableStringChooser("atom", SuperController.singleton.GetAtomUIDs(), null, "Atom", SyncAtom);
         RegisterStringChooser(_atomJsc);
-        SyncAtomChoices();
         var uiDynamicPopup = NewPopup(_atomJsc, 1000);
         uiDynamicPopup.popup.onOpenPopupHandlers += SyncAtomChoices;
     }
@@ -210,17 +213,12 @@ public class FloatParamRandomizerEE : MVRScript
         background.color = new Color(0.85f, 0.85f, 0.85f);
     }
 
-    void OnBlur()
-    {
-        OnBlurPopup(null);
-    }
+    void OnBlur() => OnBlurPopup(null);
 
-    void OnBlurPopup(UIPopup openedPopup)
-    {
+    void OnBlurPopup(UIPopup openedPopup) =>
         _popups.Where(popup => popup != openedPopup)
             .ToList()
             .ForEach(popup => popup.visible = false);
-    }
 
     void SyncAtomChoices()
     {
@@ -246,7 +244,7 @@ public class FloatParamRandomizerEE : MVRScript
         }
 
         _receiverJsc.choices = receiverChoices;
-        _receiverJsc.val = "None";
+        _receiverJsc.valNoCallback = "None";
     }
 
     string _missingReceiverStoreId = "";
@@ -290,7 +288,7 @@ public class FloatParamRandomizerEE : MVRScript
         }
 
         _receiverTargetJsc.choices = receiverTargetChoices;
-        _receiverTargetJsc.val = "None";
+        _receiverTargetJsc.valNoCallback = "None";
     }
 
     void SyncReceiverTarget(string receiverTargetName)
@@ -385,6 +383,15 @@ public class FloatParamRandomizerEE : MVRScript
         }
     }
 
+    void OnAtomRenamed(string oldName, string newName)
+    {
+        SyncAtomChoices();
+        if(_atomJsc.val == oldName)
+        {
+            _atomJsc.valNoCallback = newName;
+        }
+    }
+
     protected void OnDestroy()
     {
         try
@@ -393,6 +400,8 @@ public class FloatParamRandomizerEE : MVRScript
             {
                 DestroyImmediate(_pluginUIEventsListener);
             }
+
+            SuperController.singleton.onAtomUIDRenameHandlers -= OnAtomRenamed;
         }
         catch(Exception e)
         {
