@@ -271,7 +271,6 @@ public class FloatParamRandomizerEE : MVRScript
          * and *always* finds the atom by mapping that to the display value which contains the subscene path.
          */
         string displayValue = OptionToDisplayOption(_atomJssc, value);
-        Debug.Log($"SyncAtom: uid {value}, displayValue {displayValue}, subScenePrefix {subScenePrefix}");
         var receiverChoices = new List<string> { "None" };
         if(value != null)
         {
@@ -519,6 +518,16 @@ public class FloatParamRandomizerEE : MVRScript
         while(!_initialized)
         {
             yield return null;
+        }
+
+        /* Ensure older scenes and presets that contain the atom id with the subscene path work with v1.0.2+ */
+        if(jc.HasKey("atom"))
+        {
+            var atom = SuperController.singleton.GetAtomByUid(jc["atom"].Value);
+            if(atom)
+            {
+                jc["atom"] = atom.uidWithoutSubScenePath;
+            }
         }
 
         base.RestoreFromJSON(jc, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault);
