@@ -45,6 +45,7 @@ public class FloatParamRandomizerEE : MVRScript
 
     bool _initialized;
     bool _restoringFromJSON;
+    bool _pause;
 
     public override void Init()
     {
@@ -89,6 +90,22 @@ public class FloatParamRandomizerEE : MVRScript
             RegisterFloat(_upperValueJsf);
             var upperValueSlider = CreateSlider(_upperValueJsf, true);
             upperValueSlider.label = "Upper Value";
+
+            _lowerValueJsf.setCallbackFunction = value =>
+            {
+                if(value > _upperValueJsf.val)
+                {
+                    _upperValueJsf.val = value;
+                }
+            };
+
+            _upperValueJsf.setCallbackFunction = value =>
+            {
+                if(value < _lowerValueJsf.val)
+                {
+                    _lowerValueJsf.val = value;
+                }
+            };
 
             this.NewSpacer(210);
             CreateFunctionChooser();
@@ -269,6 +286,7 @@ public class FloatParamRandomizerEE : MVRScript
             _receivingAtom = null;
         }
 
+        _pause = true;
         _receiverJssc.choices = receiverChoices;
         _receiverJssc.valNoCallback = "None";
     }
@@ -337,6 +355,7 @@ public class FloatParamRandomizerEE : MVRScript
             _receiverStorable = null;
         }
 
+        _pause = true;
         _receiverTargetJssc.choices = receiverTargetChoices;
         _receiverTargetJssc.valNoCallback = "None";
     }
@@ -345,6 +364,7 @@ public class FloatParamRandomizerEE : MVRScript
     {
         _receiverTargetName = receiverTargetName;
         _receiverTargetJsf = null;
+        bool pause = true;
         if(_receiverStorable != null && receiverTargetName != null)
         {
             _receiverTargetJsf = _receiverStorable.GetFloatJSONParam(receiverTargetName);
@@ -365,8 +385,12 @@ public class FloatParamRandomizerEE : MVRScript
                     _currentValueJsf.val = _receiverTargetJsf.val;
                     _targetValueJsf.val = _receiverTargetJsf.val;
                 }
+
+                pause = false;
             }
         }
+
+        _pause = pause;
     }
 
     void SyncEnableRandomness(bool value)
@@ -398,6 +422,11 @@ public class FloatParamRandomizerEE : MVRScript
 
     protected void Update()
     {
+        if(!_initialized || _pause)
+        {
+            return;
+        }
+
         try
         {
             if(_accumulated > _periodJsf.val)
