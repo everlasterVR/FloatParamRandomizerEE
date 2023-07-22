@@ -15,7 +15,7 @@ using static CurveFunctions;
 /// </summary>
 public class FloatParamRandomizerEE : MVRScript
 {
-    public const string VERSION = "v0.0.0";
+    public const string VERSION = "0.0.0";
 
     List<UIPopup> _popups;
     JSONStorableStringChooser _atomJsc;
