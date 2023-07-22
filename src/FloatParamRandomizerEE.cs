@@ -5,6 +5,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using ColliderEditor;
+using SimpleJSON;
 using static Utils;
 using static CurveFunctions;
 
@@ -43,6 +44,9 @@ public class FloatParamRandomizerEE : MVRScript
     float _exponent;
     const float MIDPOINT = 0.5f;
 
+    bool _initialized;
+    bool _restoringFromJSON;
+
     public override void Init()
     {
         try
@@ -66,9 +70,6 @@ public class FloatParamRandomizerEE : MVRScript
             CreateReceiverTargetChooser();
 
             SyncAtomChoices();
-
-            // set atom to current atom to initialize
-            _atomJsc.val = containingAtom.uid;
 
             _periodJsf = new JSONStorableFloat("period", 1f, 0f, 10f, false);
             RegisterFloat(_periodJsf);
@@ -123,6 +124,13 @@ public class FloatParamRandomizerEE : MVRScript
             SyncEnableRandomness(_enableRandomness.val);
 
             SuperController.singleton.onAtomUIDRenameHandlers += OnAtomRenamed;
+
+            if(!_restoringFromJSON)
+            {
+                _atomJsc.val = containingAtom.uid;
+            }
+
+            _initialized = true;
         }
         catch(Exception e)
         {
@@ -390,6 +398,35 @@ public class FloatParamRandomizerEE : MVRScript
         {
             _atomJsc.valNoCallback = newName;
         }
+    }
+
+    public override void RestoreFromJSON(
+        JSONClass jc,
+        bool restorePhysical = true,
+        bool restoreAppearance = true,
+        JSONArray presetAtoms = null,
+        bool setMissingToDefault = true
+    )
+    {
+        _restoringFromJSON = true;
+        StartCoroutine(RestoreFromJSONCo(jc, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault));
+    }
+
+    IEnumerator RestoreFromJSONCo(
+        JSONClass jc,
+        bool restorePhysical = true,
+        bool restoreAppearance = true,
+        JSONArray presetAtoms = null,
+        bool setMissingToDefault = true
+    )
+    {
+        while(!_initialized)
+        {
+            yield return null;
+        }
+
+        base.RestoreFromJSON(jc, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault);
+        _restoringFromJSON = false;
     }
 
     protected void OnDestroy()
