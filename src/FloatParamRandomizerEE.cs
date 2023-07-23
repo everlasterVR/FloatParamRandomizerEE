@@ -143,7 +143,7 @@ public class FloatParamRandomizerEE : MVRScript
 
             if(!_restoringFromJSON)
             {
-                _atomJssc.val = containingAtom.uidWithoutSubScenePath;
+                _atomJssc.val = containingAtom.uid;
             }
 
             _initialized = true;
@@ -250,31 +250,20 @@ public class FloatParamRandomizerEE : MVRScript
     void SyncAtomChoices()
     {
         var options = new List<string> { "None" };
-        var displayOptions = new List<string> { "None" };
         foreach(var atom in SuperController.singleton.GetAtoms())
         {
-            options.Add(atom.uidWithoutSubScenePath);
-            displayOptions.Add(atom.uid);
+            options.Add(atom.uid);
         }
 
         _atomJssc.choices = options;
-        _atomJssc.displayChoices = displayOptions;
     }
 
     void SyncAtom(string value)
     {
-        /* Find by display option: hacky workaround to RestoreFromJSON not working correctly when loading a SubScene (bug in VAM).
-         * The SubScene JSON saves the atom chooser value without the subscene path. This value must be mapped to the uid (stored in display options),
-         * but VAM doesn't natively do that when it restores the JSONStorableStringChooser during a subscene load.
-         *
-         * To ensure all restores work consistently, this plugin stores without the subscene path in *all* JSONs (scene, plugin preset etc),
-         * and *always* finds the atom by mapping that to the display value which contains the subscene path.
-         */
-        string displayValue = OptionToDisplayOption(_atomJssc, value);
         var receiverChoices = new List<string> { "None" };
         if(value != null)
         {
-            _receivingAtom = SuperController.singleton.GetAtoms().FirstOrDefault(atom => atom.uid == displayValue);
+            _receivingAtom = SuperController.singleton.GetAtomByUid(value);
             if(_receivingAtom != null)
             {
                 receiverChoices.AddRange(_receivingAtom.GetStorableIDs());
@@ -288,30 +277,6 @@ public class FloatParamRandomizerEE : MVRScript
         _pause = true;
         _receiverJssc.choices = receiverChoices;
         _receiverJssc.valNoCallback = "None";
-    }
-
-    static string OptionToDisplayOption(JSONStorableStringChooser jssc, string value)
-    {
-        var popup = jssc.popup;
-        if(popup == null)
-        {
-            return null;
-        }
-
-        int i = Array.IndexOf(jssc.popup.popupValues, value);
-        return i == -1 ? null : jssc.popup.displayPopupValues[i];
-    }
-
-    static string DisplayOptionToOption(JSONStorableStringChooser jssc, string value)
-    {
-        var popup = jssc.popup;
-        if(popup == null)
-        {
-            return null;
-        }
-
-        int i = Array.IndexOf(jssc.popup.displayPopupValues, value);
-        return i == -1 ? null : jssc.popup.popupValues[i];
     }
 
     string _missingReceiverStoreId = "";
@@ -463,23 +428,23 @@ public class FloatParamRandomizerEE : MVRScript
 
     void OnAtomRenamed(string oldName, string newName)
     {
-        string oldValue = DisplayOptionToOption(_atomJssc, oldName);
         SyncAtomChoices();
         var renamedAtom = SuperController.singleton.GetAtomByUid(newName);
 
-        if(_atomJssc.val == oldValue)
+        if(_atomJssc.val == oldName)
         {
             _atomJssc.valNoCallback = "";
-            _atomJssc.valNoCallback = renamedAtom.uidWithoutSubScenePath;
+            _atomJssc.valNoCallback = renamedAtom.uid;
         }
         else if(renamedAtom.isSubSceneType)
         {
             foreach(var atom in renamedAtom.subSceneComponent.atomsInSubScene)
             {
-                if(_atomJssc.val == atom.uidWithoutSubScenePath)
+                if(_atomJssc.val == atom.uid)
                 {
                     _atomJssc.valNoCallback = "";
-                    _atomJssc.valNoCallback = atom.uidWithoutSubScenePath;
+                    _atomJssc.valNoCallback = atom.uid;
+                    break;
                 }
             }
         }
@@ -520,17 +485,24 @@ public class FloatParamRandomizerEE : MVRScript
             yield return null;
         }
 
-        /* Ensure older scenes and presets that contain the atom id with the subscene path work with v1.0.2+ */
+        /* Ensure loading a SubScene file sets the correct value to JSONStorableStringChooser */
         if(jc.HasKey("atom"))
         {
+            var subScene = containingAtom.containingSubScene;
             var atom = SuperController.singleton.GetAtomByUid(jc["atom"].Value);
-            if(atom)
+            if(subScene && (!atom || atom.containingSubScene != subScene))
             {
-                jc["atom"] = atom.uidWithoutSubScenePath;
+                if(atom)
+                {
+                    jc["atom"] = atom.uidWithoutSubScenePath;
+                }
+
+                subScenePrefix = containingAtom.uid.Replace(containingAtom.uidWithoutSubScenePath, "");
             }
         }
 
         base.RestoreFromJSON(jc, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault);
+        subScenePrefix = null;
         _restoringFromJSON = false;
     }
 
