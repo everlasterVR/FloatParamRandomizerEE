@@ -13,11 +13,11 @@ using static CurveFunctions;
 /// Randomizes float values with a smooth transition from current value towards target value.
 /// Source: https://github.com/everlasterVR/FloatParamRandomizerEE
 /// </summary>
-public class FloatParamRandomizerEE : MVRScript
+sealed class FloatParamRandomizerEE : ScriptBase
 {
     public const string VERSION = "0.0.0";
+    public override bool ShouldIgnore() => false;
 
-    List<UIPopup> _popups;
     JSONStorableStringChooser _atomJssc;
     JSONStorableStringChooser _receiverJssc;
     JSONStorableStringChooser _receiverTargetJssc;
@@ -42,10 +42,7 @@ public class FloatParamRandomizerEE : MVRScript
     Func<float, float> _function;
     float _exponent;
     const float MIDPOINT = 0.5f;
-
-    bool _initialized;
-    bool _restoringFromJSON;
-    bool _pause;
+    bool _pause = true;
 
     public override void Init()
     {
@@ -64,7 +61,6 @@ public class FloatParamRandomizerEE : MVRScript
             versionTextField.UItext.fontSize = 24;
             versionTextField.UItext.alignment = TextAnchor.UpperRight;
 
-            _popups = new List<UIPopup>();
             CreateAtomChooser();
             CreateReceiverChooser();
             CreateReceiverTargetChooser();
@@ -140,13 +136,8 @@ public class FloatParamRandomizerEE : MVRScript
             SyncEnableRandomness(_enableRandomness.val);
 
             SuperController.singleton.onAtomUIDRenameHandlers += OnAtomRenamed;
-
-            if(!_restoringFromJSON)
-            {
-                _atomJssc.val = containingAtom.uid;
-            }
-
-            _initialized = true;
+            _atomJssc.val = containingAtom.uid;
+            _pause = false;
         }
         catch(Exception e)
         {
@@ -205,7 +196,7 @@ public class FloatParamRandomizerEE : MVRScript
         var popup = CreateScrollablePopup(_functionJssc);
         popup.popupPanelHeight = 160;
         popup.popup.onOpenPopupHandlers += () => OnBlurPopup(popup.popup);
-        _popups.Add(popup.popup);
+        popups.Add(popup.popup);
     }
 
     UIDynamicPopup NewPopup(JSONStorableStringChooser jsc, int panelHeight)
@@ -213,42 +204,9 @@ public class FloatParamRandomizerEE : MVRScript
         var uiDynamicPopup = this.CreatePopupAuto(jsc);
         uiDynamicPopup.popupPanelHeight = panelHeight;
         uiDynamicPopup.popup.onOpenPopupHandlers += () => OnBlurPopup(uiDynamicPopup.popup);
-        _popups.Add(uiDynamicPopup.popup);
+        popups.Add(uiDynamicPopup.popup);
         return uiDynamicPopup;
     }
-
-    UnityEventsListener _pluginUIEventsListener;
-
-    public override void InitUI()
-    {
-        base.InitUI();
-        if(UITransform == null || _pluginUIEventsListener != null)
-        {
-            return;
-        }
-
-        _pluginUIEventsListener = UITransform.gameObject.AddComponent<UnityEventsListener>();
-        if(_pluginUIEventsListener != null)
-        {
-            _pluginUIEventsListener.EnableHandlers += () => StartCoroutine(ActionsOnUIOpened());
-            _pluginUIEventsListener.DisableHandlers += OnBlur;
-            _pluginUIEventsListener.ClickHandlers += OnBlur;
-        }
-    }
-
-    IEnumerator ActionsOnUIOpened()
-    {
-        yield return new WaitForEndOfFrame();
-        var background = rightUIContent.parent.parent.parent.transform.GetComponent<Image>();
-        background.color = new Color(0.85f, 0.85f, 0.85f);
-    }
-
-    void OnBlur() => OnBlurPopup(null);
-
-    void OnBlurPopup(UIPopup openedPopup) =>
-        _popups.Where(popup => popup != openedPopup)
-            .ToList()
-            .ForEach(popup => popup.visible = false);
 
     void SyncAtomChoices()
     {
@@ -387,9 +345,9 @@ public class FloatParamRandomizerEE : MVRScript
     float _start;
     float _end;
 
-    protected void Update()
+    void Update()
     {
-        if(!_initialized || _pause)
+        if(_pause)
         {
             return;
         }
@@ -471,23 +429,6 @@ public class FloatParamRandomizerEE : MVRScript
         bool setMissingToDefault = true
     )
     {
-        _restoringFromJSON = true;
-        StartCoroutine(RestoreFromJSONCo(jc, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault));
-    }
-
-    IEnumerator RestoreFromJSONCo(
-        JSONClass jc,
-        bool restorePhysical = true,
-        bool restoreAppearance = true,
-        JSONArray presetAtoms = null,
-        bool setMissingToDefault = true
-    )
-    {
-        while(!_initialized)
-        {
-            yield return null;
-        }
-
         /* Ensure loading a SubScene file sets the correct value to JSONStorableStringChooser. */
         if(jc.HasKey("atom"))
         {
@@ -506,18 +447,13 @@ public class FloatParamRandomizerEE : MVRScript
 
         base.RestoreFromJSON(jc, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault);
         subScenePrefix = null;
-        _restoringFromJSON = false;
     }
 
-    protected void OnDestroy()
+    void OnDestroy()
     {
         try
         {
-            if(_pluginUIEventsListener != null)
-            {
-                DestroyImmediate(_pluginUIEventsListener);
-            }
-
+            BaseOnDestroy();
             SuperController.singleton.onAtomUIDRenameHandlers -= OnAtomRenamed;
         }
         catch(Exception e)

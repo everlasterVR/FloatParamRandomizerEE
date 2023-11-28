@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-public static class UIDynamicExtensions
+static class UIDynamicExtensions
 {
     public static void SetActiveStyle(this UIDynamic element, bool active, bool setInteractable = false)
     {

@@ -2,24 +2,27 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class UnityEventsListener : MonoBehaviour, IPointerClickHandler
+sealed class UnityEventsListener : MonoBehaviour, IPointerClickHandler
 {
-    public Action DisableHandlers { get; set; }
-    public Action EnableHandlers { get; set; }
-    public Action ClickHandlers { get; set; }
-
-    public void OnDisable()
-    {
-        DisableHandlers?.Invoke();
-    }
+    public bool IsEnabled { get; private set; }
+    public Action enabledHandlers;
+    public Action disabledHandlers;
+    public Action clickHandlers;
 
     public void OnEnable()
     {
-        EnableHandlers?.Invoke();
+        IsEnabled = true;
+        enabledHandlers?.Invoke();
+    }
+
+    public void OnDisable()
+    {
+        IsEnabled = false;
+        disabledHandlers?.Invoke();
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        ClickHandlers?.Invoke();
+        clickHandlers?.Invoke();
     }
 }

@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-public static class CurveFunctions
+static class CurveFunctions
 {
     #region Parametric smoother
 

@@ -1,4 +1,4 @@
-﻿public static class MVRScriptExtensions
+﻿static class MVRScriptExtensions
 {
     public static UIDynamic NewSpacer(
         this MVRScript script,

@@ -1,4 +1,4 @@
-﻿public static class Utils
+﻿static class Utils
 {
     public static void LogError(string message) =>
         SuperController.LogError(Format(message));
