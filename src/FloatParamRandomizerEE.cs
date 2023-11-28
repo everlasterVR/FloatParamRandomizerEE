@@ -107,7 +107,7 @@ public class FloatParamRandomizerEE : MVRScript
                 }
             };
 
-            this.NewSpacer(210);
+            this.NewSpacer(230);
             CreateFunctionChooser();
 
             _curvatureJsf = new JSONStorableFloat("curvature", 0.25f, 0.0f, 1.0f);
@@ -202,7 +202,10 @@ public class FloatParamRandomizerEE : MVRScript
         };
         _functionJssc = new JSONStorableStringChooser("function", _functionOptions.Keys.ToList(), null, "Function", SyncFunction);
         RegisterStringChooser(_functionJssc);
-        NewPopup(_functionJssc, 160);
+        var popup = CreateScrollablePopup(_functionJssc);
+        popup.popupPanelHeight = 160;
+        popup.popup.onOpenPopupHandlers += () => OnBlurPopup(popup.popup);
+        _popups.Add(popup.popup);
     }
 
     UIDynamicPopup NewPopup(JSONStorableStringChooser jsc, int panelHeight)
@@ -485,7 +488,7 @@ public class FloatParamRandomizerEE : MVRScript
             yield return null;
         }
 
-        /* Ensure loading a SubScene file sets the correct value to JSONStorableStringChooser */
+        /* Ensure loading a SubScene file sets the correct value to JSONStorableStringChooser. */
         if(jc.HasKey("atom"))
         {
             var subScene = containingAtom.containingSubScene;
