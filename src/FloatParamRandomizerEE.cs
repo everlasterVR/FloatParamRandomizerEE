@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -18,6 +17,8 @@ sealed class FloatParamRandomizerEE : ScriptBase
     public const string VERSION = "0.0.0";
     public override bool ShouldIgnore() => false;
 
+    JSONStorableString _titleJss;
+    JSONStorableString _versionJss;
     JSONStorableStringChooser _atomJssc;
     JSONStorableStringChooser _receiverJssc;
     JSONStorableStringChooser _receiverTargetJssc;
@@ -27,7 +28,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
     JSONStorableFloat _quicknessJsf;
     JSONStorableFloat _lowerValueJsf;
     JSONStorableFloat _upperValueJsf;
-    JSONStorableBool _enableRandomness;
+    JSONStorableBool _enableRandomnessJsb;
     JSONStorableFloat _targetValueJsf;
     JSONStorableFloat _currentValueJsf;
     JSONStorableFloat _receiverTargetJsf;
@@ -48,101 +49,134 @@ sealed class FloatParamRandomizerEE : ScriptBase
     {
         try
         {
-            var titleJss = new JSONStorableString("title", $"{"\n".Size(18)}{nameof(FloatParamRandomizerEE)}".Bold());
-            var titleTextField = CreateTitleTextField(titleJss, 72, false);
-            titleTextField.UItext.fontSize = 36;
-
-            var versionJss = new JSONStorableString("version", VERSION)
-            {
-                storeType = JSONStorableParam.StoreType.Full,
-            };
-            RegisterString(versionJss);
-            var versionTextField = CreateTitleTextField(versionJss, 72, true);
-            versionTextField.UItext.fontSize = 24;
-            versionTextField.UItext.alignment = TextAnchor.UpperRight;
-
-            CreateAtomChooser();
-            CreateReceiverChooser();
-            CreateReceiverTargetChooser();
-
+            SetupStorables();
             SyncAtomChoices();
-
-            _periodJsf = new JSONStorableFloat("period", 1f, 0f, 10f, false);
-            RegisterFloat(_periodJsf);
-            var periodSlider = CreateSlider(_periodJsf, true);
-            periodSlider.label = "Period";
-
-            _quicknessJsf = new JSONStorableFloat("quickness", 1f, 0f, 10f);
-            RegisterFloat(_quicknessJsf);
-            var quicknessSlider = CreateSlider(_quicknessJsf, true);
-            quicknessSlider.label = "Quickness";
-
-            _lowerValueJsf = new JSONStorableFloat("lowerValue", 0f, 0f, 1f, false);
-            RegisterFloat(_lowerValueJsf);
-            var lowerValueSlider = CreateSlider(_lowerValueJsf, true);
-            lowerValueSlider.label = "Lower Value";
-
-            _upperValueJsf = new JSONStorableFloat("upperValue", 0f, 0f, 1f, false);
-            RegisterFloat(_upperValueJsf);
-            var upperValueSlider = CreateSlider(_upperValueJsf, true);
-            upperValueSlider.label = "Upper Value";
-
-            _lowerValueJsf.setCallbackFunction = value =>
-            {
-                if(value > _upperValueJsf.val)
-                {
-                    _upperValueJsf.val = value;
-                }
-            };
-
-            _upperValueJsf.setCallbackFunction = value =>
-            {
-                if(value < _lowerValueJsf.val)
-                {
-                    _lowerValueJsf.val = value;
-                }
-            };
-
-            this.NewSpacer(230);
-            CreateFunctionChooser();
-
-            _curvatureJsf = new JSONStorableFloat("curvature", 0.25f, 0.0f, 1.0f);
-            RegisterFloat(_curvatureJsf);
-            var curvatureSlider = CreateSlider(_curvatureJsf);
-            curvatureSlider.label = "Curvature";
-
-            _functionJssc.val = _functionOptions.Keys.First();
-
-            this.NewSpacer(10, true);
-
-            _enableRandomness = new JSONStorableBool("enableRandomness", true, SyncEnableRandomness);
-            RegisterBool(_enableRandomness);
-            var enableRandomnessToggle = CreateToggle(_enableRandomness, true);
-            enableRandomnessToggle.label = "Enable Randomness";
-
-            _targetValueJsf = new JSONStorableFloat("targetValue", 0f, 0f, 1f, false, false);
-            _targetValueSlider = CreateSlider(_targetValueJsf, true);
-            _targetValueSlider.slider.interactable = false;
-            _targetValueSlider.defaultButtonEnabled = false;
-            _targetValueSlider.quickButtonsEnabled = false;
-            _targetValueSlider.label = "Target Value";
-
-            _currentValueJsf = new JSONStorableFloat("currentValue", 0f, 0f, 1f, false, false);
-            var currentValueSlider = CreateSlider(_currentValueJsf, true);
-            currentValueSlider.defaultButtonEnabled = false;
-            currentValueSlider.quickButtonsEnabled = false;
-            currentValueSlider.label = "Current Value";
-
-            SyncEnableRandomness(_enableRandomness.val);
-
-            SuperController.singleton.onAtomUIDRenameHandlers += OnAtomRenamed;
+            SyncFunction(_functionJssc.val);
+            SyncEnableRandomness(_enableRandomnessJsb.val);
             _atomJssc.val = containingAtom.uid;
+            SuperController.singleton.onAtomUIDRenameHandlers += OnAtomRenamed;
             _pause = false;
         }
         catch(Exception e)
         {
             Utils.LogError($"{e}");
         }
+    }
+
+    void SetupStorables()
+    {
+        _titleJss = new JSONStorableString("title", $"{"\n".Size(18)}{nameof(FloatParamRandomizerEE)}".Bold());
+        _versionJss = new JSONStorableString("version", VERSION)
+        {
+            storeType = JSONStorableParam.StoreType.Full,
+        };
+        _atomJssc = new JSONStorableStringChooser("atom", new List<string>(), null, "Atom", SyncAtom)
+        {
+            representsAtomUid = true,
+        };
+        _receiverJssc = new JSONStorableStringChooser("receiver", null, null, "Receiver", SyncReceiver);
+        _receiverTargetJssc = new JSONStorableStringChooser("receiverTarget", null, null, "Target", SyncReceiverTarget);
+        _periodJsf = new JSONStorableFloat("period", 1f, 0f, 10f, false);
+        _quicknessJsf = new JSONStorableFloat("quickness", 1f, 0f, 10f);
+        _lowerValueJsf = new JSONStorableFloat("lowerValue", 0f, 0f, 1f, false)
+        {
+            setCallbackFunction = value =>
+            {
+                if(value > _upperValueJsf.val)
+                {
+                    _upperValueJsf.val = value;
+                }
+            },
+        };
+        _upperValueJsf = new JSONStorableFloat("upperValue", 0f, 0f, 1f, false)
+        {
+            setCallbackFunction = value =>
+            {
+                if(value < _lowerValueJsf.val)
+                {
+                    _lowerValueJsf.val = value;
+                }
+            },
+        };
+        _curvatureJsf = new JSONStorableFloat("curvature", 0.25f, 0.0f, 1.0f);
+
+        // any function can be added here as long as it takes an x in range [0, 1] and outputs an y in range [0, 1]
+        _functionOptions = new Dictionary<string, Func<float, float>>
+        {
+            { "Ease In-Out", value => ParametricSmoother(value, _exponent, MIDPOINT) },
+            { "Bounce In-Out", value => ParametricSmoother(value, _exponent, MIDPOINT) },
+        };
+        var options = _functionOptions.Keys.ToList();
+        _functionJssc = new JSONStorableStringChooser("function", options, options[0], "Function", SyncFunction);
+        _enableRandomnessJsb = new JSONStorableBool("enableRandomness", true, SyncEnableRandomness);
+        _targetValueJsf = new JSONStorableFloat("targetValue", 0f, 0f, 1f, false, false);
+        _currentValueJsf = new JSONStorableFloat("currentValue", 0f, 0f, 1f, false, false);
+
+        RegisterString(_versionJss);
+        RegisterStringChooser(_atomJssc);
+        RegisterStringChooser(_receiverJssc);
+        RegisterStringChooser(_receiverTargetJssc);
+        RegisterFloat(_periodJsf);
+        RegisterFloat(_quicknessJsf);
+        RegisterFloat(_lowerValueJsf);
+        RegisterFloat(_upperValueJsf);
+        RegisterFloat(_curvatureJsf);
+        RegisterStringChooser(_functionJssc);
+        RegisterBool(_enableRandomnessJsb);
+    }
+
+    protected override void BuildUI()
+    {
+        var titleTextField = CreateTitleTextField(_titleJss, 72, false);
+        titleTextField.UItext.fontSize = 36;
+
+        var versionTextField = CreateTitleTextField(_versionJss, 72, true);
+        versionTextField.UItext.fontSize = 24;
+        versionTextField.UItext.alignment = TextAnchor.UpperRight;
+
+        var atomPopup = NewPopup(_atomJssc, 1000);
+        atomPopup.popup.onOpenPopupHandlers += SyncAtomChoices;
+
+        NewPopup(_receiverJssc, 860);
+        NewPopup(_receiverTargetJssc, 720);
+
+        var periodSlider = CreateSlider(_periodJsf, true);
+        periodSlider.label = "Period";
+
+        var quicknessSlider = CreateSlider(_quicknessJsf, true);
+        quicknessSlider.label = "Quickness";
+
+        var lowerValueSlider = CreateSlider(_lowerValueJsf, true);
+        lowerValueSlider.label = "Lower Value";
+
+        var upperValueSlider = CreateSlider(_upperValueJsf, true);
+        upperValueSlider.label = "Upper Value";
+
+        this.NewSpacer(230);
+
+        var functionPopup = CreateScrollablePopup(_functionJssc);
+        functionPopup.popupPanelHeight = 160;
+        functionPopup.popup.onOpenPopupHandlers += () => OnBlurPopup(functionPopup.popup);
+        popups.Add(functionPopup.popup);
+
+        var curvatureSlider = CreateSlider(_curvatureJsf);
+        curvatureSlider.label = "Curvature";
+
+        this.NewSpacer(10, true);
+
+        var enableRandomnessToggle = CreateToggle(_enableRandomnessJsb, true);
+        enableRandomnessToggle.label = "Enable Randomness";
+
+        _targetValueSlider = CreateSlider(_targetValueJsf, true);
+        _targetValueSlider.slider.interactable = false;
+        _targetValueSlider.defaultButtonEnabled = false;
+        _targetValueSlider.quickButtonsEnabled = false;
+        _targetValueSlider.label = "Target Value";
+
+        var currentValueSlider = CreateSlider(_currentValueJsf, true);
+        currentValueSlider.defaultButtonEnabled = false;
+        currentValueSlider.quickButtonsEnabled = false;
+        currentValueSlider.label = "Current Value";
     }
 
     UIDynamicTextField CreateTitleTextField(JSONStorableString jss, int height, bool rightSide)
@@ -158,45 +192,10 @@ sealed class FloatParamRandomizerEE : ScriptBase
         return textField;
     }
 
-    void CreateAtomChooser()
-    {
-        _atomJssc = new JSONStorableStringChooser("atom", new List<string>(), null, "Atom", SyncAtom)
-        {
-            representsAtomUid = true,
-        };
-        RegisterStringChooser(_atomJssc);
-        var uiDynamicPopup = NewPopup(_atomJssc, 1000);
-        uiDynamicPopup.popup.onOpenPopupHandlers += SyncAtomChoices;
-    }
-
-    void CreateReceiverChooser()
-    {
-        _receiverJssc = new JSONStorableStringChooser("receiver", null, null, "Receiver", SyncReceiver);
-        RegisterStringChooser(_receiverJssc);
-        NewPopup(_receiverJssc, 860);
-    }
-
-    void CreateReceiverTargetChooser()
-    {
-        _receiverTargetJssc = new JSONStorableStringChooser("receiverTarget", null, null, "Target", SyncReceiverTarget);
-        RegisterStringChooser(_receiverTargetJssc);
-        NewPopup(_receiverTargetJssc, 720);
-    }
-
     void CreateFunctionChooser()
     {
-        // any function can be added here as long as it takes an x in range [0, 1] and outputs an y in range [0, 1]
-        _functionOptions = new Dictionary<string, Func<float, float>>
-        {
-            { "Ease In-Out", value => ParametricSmoother(value, _exponent, MIDPOINT) },
-            { "Bounce In-Out", value => ParametricSmoother(value, _exponent, MIDPOINT) },
-        };
-        _functionJssc = new JSONStorableStringChooser("function", _functionOptions.Keys.ToList(), null, "Function", SyncFunction);
+
         RegisterStringChooser(_functionJssc);
-        var popup = CreateScrollablePopup(_functionJssc);
-        popup.popupPanelHeight = 160;
-        popup.popup.onOpenPopupHandlers += () => OnBlurPopup(popup.popup);
-        popups.Add(popup.popup);
     }
 
     UIDynamicPopup NewPopup(JSONStorableStringChooser jsc, int panelHeight)
@@ -357,7 +356,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
             if(_accumulated > _periodJsf.val)
             {
                 _accumulated = 0f;
-                if(_enableRandomness.val)
+                if(_enableRandomnessJsb.val)
                 {
                     _start = _currentValueJsf.val;
                     _end = _targetValueJsf.val = UnityEngine.Random.Range(_lowerValueJsf.val, _upperValueJsf.val);

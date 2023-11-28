@@ -9,6 +9,7 @@ class ScriptBase : MVRScript
 
     protected readonly List<UIPopup> popups = new List<UIPopup>();
     UnityEventsListener _pluginUIEventsListener;
+    bool _isUIBuilt;
 
     public override void InitUI()
     {
@@ -21,9 +22,19 @@ class ScriptBase : MVRScript
         _pluginUIEventsListener = UITransform.gameObject.AddComponent<UnityEventsListener>();
         if(_pluginUIEventsListener != null)
         {
-            _pluginUIEventsListener.enabledHandlers += SetGrayBackground;
+            _pluginUIEventsListener.enabledHandlers += OnUIEnabled;
             _pluginUIEventsListener.disabledHandlers += OnBlur;
             _pluginUIEventsListener.clickHandlers += OnBlur;
+        }
+    }
+
+    void OnUIEnabled()
+    {
+        SetGrayBackground();
+        if(!_isUIBuilt)
+        {
+            BuildUI();
+            _isUIBuilt = true;
         }
     }
 
@@ -31,6 +42,10 @@ class ScriptBase : MVRScript
     {
         var background = rightUIContent.parent.parent.parent.transform.GetComponent<Image>();
         background.color = new Color(0.85f, 0.85f, 0.85f);
+    }
+
+    protected virtual void BuildUI()
+    {
     }
 
     void OnBlur() => OnBlurPopup(null);

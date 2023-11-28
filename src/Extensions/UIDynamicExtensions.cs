@@ -5,6 +5,11 @@ static class UIDynamicExtensions
 {
     public static void SetActiveStyle(this UIDynamic element, bool active, bool setInteractable = false)
     {
+        if(element == null)
+        {
+            return;
+        }
+
         var color = active ? Color.black : new Color(0.4f, 0.4f, 0.4f);
         var uiDynamicSlider = element as UIDynamicSlider;
         if(uiDynamicSlider != null)
