@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using ColliderEditor;
@@ -18,17 +17,17 @@ sealed class FloatParamRandomizerEE : ScriptBase
     public override bool ShouldIgnore() => false;
 
     JSONStorableString _titleJss;
-    JSONStorableString _versionJss;
-    JSONStorableStringChooser _atomJssc;
-    JSONStorableStringChooser _receiverJssc;
-    JSONStorableStringChooser _receiverTargetJssc;
-    JSONStorableStringChooser _functionJssc;
-    JSONStorableFloat _curvatureJsf;
-    JSONStorableFloat _periodJsf;
-    JSONStorableFloat _quicknessJsf;
-    JSONStorableFloat _lowerValueJsf;
-    JSONStorableFloat _upperValueJsf;
-    JSONStorableBool _enableRandomnessJsb;
+    StorableString _versionJss;
+    StorableStringChooser _atomJssc;
+    StorableStringChooser _receiverJssc;
+    StorableStringChooser _receiverTargetJssc;
+    StorableStringChooser _functionJssc;
+    StorableFloat _curvatureJsf;
+    StorableFloat _periodJsf;
+    StorableFloat _quicknessJsf;
+    StorableFloat _lowerValueJsf;
+    StorableFloat _upperValueJsf;
+    StorableBool _enableRandomnessJsb;
     JSONStorableFloat _targetValueJsf;
     JSONStorableFloat _currentValueJsf;
     JSONStorableFloat _receiverTargetJsf;
@@ -51,8 +50,8 @@ sealed class FloatParamRandomizerEE : ScriptBase
         {
             SetupStorables();
             SyncAtomChoices();
-            SyncFunction(_functionJssc.val);
-            SyncEnableRandomness(_enableRandomnessJsb.val);
+            _functionJssc.Callback();
+            _enableRandomnessJsb.Callback();
             _atomJssc.val = containingAtom.uid;
             SuperController.singleton.onAtomUIDRenameHandlers += OnAtomRenamed;
             _pause = false;
@@ -66,19 +65,36 @@ sealed class FloatParamRandomizerEE : ScriptBase
     void SetupStorables()
     {
         _titleJss = new JSONStorableString("title", $"{"\n".Size(18)}{nameof(FloatParamRandomizerEE)}".Bold());
-        _versionJss = new JSONStorableString("version", VERSION)
-        {
-            storeType = JSONStorableParam.StoreType.Full,
-        };
-        _atomJssc = new JSONStorableStringChooser("atom", new List<string>(), null, "Atom", SyncAtom)
+        _versionJss = new StorableString("version", VERSION);
+        _atomJssc = new StorableStringChooser("atom", new List<string>(), null, "Atom")
         {
             representsAtomUid = true,
+            setCallbackFunction = SyncAtom,
         };
-        _receiverJssc = new JSONStorableStringChooser("receiver", null, null, "Receiver", SyncReceiver);
-        _receiverTargetJssc = new JSONStorableStringChooser("receiverTarget", null, null, "Target", SyncReceiverTarget);
-        _periodJsf = new JSONStorableFloat("period", 1f, 0f, 10f, false);
-        _quicknessJsf = new JSONStorableFloat("quickness", 1f, 0f, 10f);
-        _lowerValueJsf = new JSONStorableFloat("lowerValue", 0f, 0f, 1f, false)
+        _receiverJssc = new StorableStringChooser("receiver", null, null, "Receiver")
+        {
+            setCallbackFunction = SyncReceiver,
+        };
+        _receiverTargetJssc = new StorableStringChooser("receiverTarget", null, null, "Target")
+        {
+            setCallbackFunction = SyncReceiverTarget,
+        };
+
+        // any function can be added here as long as it takes an x in range [0, 1] and outputs an y in range [0, 1]
+        _functionOptions = new Dictionary<string, Func<float, float>>
+        {
+            { "Ease In-Out", value => ParametricSmoother(value, _exponent, MIDPOINT) },
+            { "Bounce In-Out", value => ParametricSmoother(value, _exponent, MIDPOINT) },
+        };
+        var options = _functionOptions.Keys.ToList();
+        _functionJssc = new StorableStringChooser("function", options, options[0], "Function")
+        {
+            setCallbackFunction = SyncFunction,
+        };
+
+        _periodJsf = new StorableFloat("period", 1f, 0f, 10f, false);
+        _quicknessJsf = new StorableFloat("quickness", 1f, 0f, 10f);
+        _lowerValueJsf = new StorableFloat("lowerValue", 0f, 0f, 1f, false)
         {
             setCallbackFunction = value =>
             {
@@ -88,7 +104,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
                 }
             },
         };
-        _upperValueJsf = new JSONStorableFloat("upperValue", 0f, 0f, 1f, false)
+        _upperValueJsf = new StorableFloat("upperValue", 0f, 0f, 1f, false)
         {
             setCallbackFunction = value =>
             {
@@ -98,31 +114,25 @@ sealed class FloatParamRandomizerEE : ScriptBase
                 }
             },
         };
-        _curvatureJsf = new JSONStorableFloat("curvature", 0.25f, 0.0f, 1.0f);
-
-        // any function can be added here as long as it takes an x in range [0, 1] and outputs an y in range [0, 1]
-        _functionOptions = new Dictionary<string, Func<float, float>>
+        _curvatureJsf = new StorableFloat("curvature", 0.25f, 0.0f, 1.0f);
+        _enableRandomnessJsb = new StorableBool("enableRandomness", true)
         {
-            { "Ease In-Out", value => ParametricSmoother(value, _exponent, MIDPOINT) },
-            { "Bounce In-Out", value => ParametricSmoother(value, _exponent, MIDPOINT) },
+            setCallbackFunction = SyncEnableRandomness,
         };
-        var options = _functionOptions.Keys.ToList();
-        _functionJssc = new JSONStorableStringChooser("function", options, options[0], "Function", SyncFunction);
-        _enableRandomnessJsb = new JSONStorableBool("enableRandomness", true, SyncEnableRandomness);
         _targetValueJsf = new JSONStorableFloat("targetValue", 0f, 0f, 1f, false, false);
         _currentValueJsf = new JSONStorableFloat("currentValue", 0f, 0f, 1f, false, false);
 
-        RegisterString(_versionJss);
-        RegisterStringChooser(_atomJssc);
-        RegisterStringChooser(_receiverJssc);
-        RegisterStringChooser(_receiverTargetJssc);
-        RegisterFloat(_periodJsf);
-        RegisterFloat(_quicknessJsf);
-        RegisterFloat(_lowerValueJsf);
-        RegisterFloat(_upperValueJsf);
-        RegisterFloat(_curvatureJsf);
-        RegisterStringChooser(_functionJssc);
-        RegisterBool(_enableRandomnessJsb);
+        _versionJss.RegisterTo(this);
+        _atomJssc.RegisterTo(this);
+        _receiverJssc.RegisterTo(this);
+        _receiverTargetJssc.RegisterTo(this);
+        _periodJsf.RegisterTo(this);
+        _quicknessJsf.RegisterTo(this);
+        _lowerValueJsf.RegisterTo(this);
+        _upperValueJsf.RegisterTo(this);
+        _curvatureJsf.RegisterTo(this);
+        _functionJssc.RegisterTo(this);
+        _enableRandomnessJsb.RegisterTo(this);
     }
 
     protected override void BuildUI()
@@ -190,12 +200,6 @@ sealed class FloatParamRandomizerEE : ScriptBase
         layout.minHeight = height;
 
         return textField;
-    }
-
-    void CreateFunctionChooser()
-    {
-
-        RegisterStringChooser(_functionJssc);
     }
 
     UIDynamicPopup NewPopup(JSONStorableStringChooser jsc, int panelHeight)

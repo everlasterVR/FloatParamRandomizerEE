@@ -91,6 +91,10 @@
     <Compile Include="src\Extensions\UIDynamicExtensions.cs" />
     <Compile Include="src\FloatParamRandomizerEE.cs" />
     <Compile Include="src\ScriptBase.cs" />
+    <Compile Include="src\Storables\StorableBool.cs" />
+    <Compile Include="src\Storables\StorableFloat.cs" />
+    <Compile Include="src\Storables\StorableString.cs" />
+    <Compile Include="src\Storables\StorableStringChooser.cs" />
     <Compile Include="src\Utils.cs" />
     <Compile Include="vendor\vam-collider-editor\MVRScriptExtensions.cs" />
   </ItemGroup>
