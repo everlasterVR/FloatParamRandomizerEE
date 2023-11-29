@@ -181,6 +181,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
         var functionPopup = CreateScrollablePopup(_functionJssc);
         functionPopup.popupPanelHeight = 160;
         functionPopup.popup.onOpenPopupHandlers += () => OnBlurPopup(functionPopup.popup);
+        functionPopup.popup.labelText.color = Color.black;
         popups.Add(functionPopup.popup);
 
         var curvatureSlider = CreateSlider(_curvatureJsf);
@@ -221,6 +222,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
         var uiDynamicPopup = this.CreatePopupAuto(jsc);
         uiDynamicPopup.popupPanelHeight = panelHeight;
         uiDynamicPopup.popup.onOpenPopupHandlers += () => OnBlurPopup(uiDynamicPopup.popup);
+        uiDynamicPopup.popup.labelText.color = Color.black;
         popups.Add(uiDynamicPopup.popup);
         return uiDynamicPopup;
     }
@@ -339,6 +341,9 @@ sealed class FloatParamRandomizerEE : ScriptBase
             _currentValueJsf.val = _receiverTarget.val;
             _targetValueJsf.val = _receiverTarget.val;
         }
+
+        _start = _receiverTarget.val;
+        _accumulated = _periodJsf.val + Time.deltaTime;
     }
 
     void SyncEnableRandomness(bool value)
