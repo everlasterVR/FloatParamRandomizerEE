@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -12,7 +13,28 @@ class ScriptBase : MVRScript
     protected bool isRestoringFromJSON;
     protected readonly List<UIPopup> popups = new List<UIPopup>();
     UnityEventsListener _pluginUIEventsListener;
+    UIDynamicTextField _postponedInfoField;
     bool _isUIBuilt;
+    Action _postponedActions;
+
+    void Start()
+    {
+        _postponedActions?.Invoke();
+        _postponedActions = null;
+    }
+
+    protected void StartOrPostponeCoroutine(IEnumerator coroutine, Action onPostpone = null)
+    {
+        if(gameObject.activeInHierarchy)
+        {
+            StartCoroutine(coroutine);
+        }
+        else
+        {
+            onPostpone?.Invoke();
+            _postponedActions += () => StartCoroutine(coroutine);
+        }
+    }
 
     public override void InitUI()
     {
@@ -34,11 +56,20 @@ class ScriptBase : MVRScript
     void OnUIEnabled()
     {
         SetGrayBackground();
-        StartCoroutine(OnUIEnabledCo());
+        StartOrPostponeCoroutine(OnUIEnabledCo(), () =>
+        {
+            _postponedInfoField = CreateTextField(new JSONStorableString("info", "Enable the atom to initialize.".Bold()));
+            _postponedInfoField.backgroundColor = Color.clear;
+        });
     }
 
     IEnumerator OnUIEnabledCo()
     {
+        if(_postponedInfoField != null)
+        {
+            RemoveTextField(_postponedInfoField);
+        }
+
         while(!isInitialized)
         {
             yield return null;

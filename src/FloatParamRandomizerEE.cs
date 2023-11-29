@@ -53,7 +53,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
             SetupStorables();
             SyncAtomOptions();
             SuperController.singleton.onAtomUIDRenameHandlers += OnAtomRenamed;
-            StartCoroutine(FinishInitCo());
+            StartOrPostponeCoroutine(FinishInitCo());
         }
         catch(Exception e)
         {
@@ -107,8 +107,8 @@ sealed class FloatParamRandomizerEE : ScriptBase
         _upperValueJsf = new StorableFloat("upperValue", 0f, 0f, 1f, false);
         _curvatureJsf = new StorableFloat("curvature", 0.25f, 0.0f, 1.0f);
         _enableRandomnessJsb = new StorableBool("enableRandomness", true);
-        _targetValueJsf = new JSONStorableFloat("targetValue", 0f, 0f, 1f, true, false);
-        _currentValueJsf = new JSONStorableFloat("currentValue", 0f, 0f, 1f, true, false);
+        _targetValueJsf = new JSONStorableFloat("targetValue", 0f, 0f, 1f, false, false);
+        _currentValueJsf = new JSONStorableFloat("currentValue", 0f, 0f, 1f, false, false);
 
         _versionJss.RegisterTo(this);
         _atomJssc.RegisterTo(this);
@@ -511,7 +511,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
             }
         }
 
-        StartCoroutine(RestoreFromJSONCo(jc, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault));
+        StartOrPostponeCoroutine(RestoreFromJSONCo(jc, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault));
     }
 
     // ensure correct order for restoring atom, receiver and receiverTarget
