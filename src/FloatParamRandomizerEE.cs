@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using ColliderEditor;
 using SimpleJSON;
 using System.Linq;
 using static CurveFunctions;
@@ -155,13 +154,13 @@ sealed class FloatParamRandomizerEE : ScriptBase
         versionTextField.UItext.fontSize = 24;
         versionTextField.UItext.alignment = TextAnchor.UpperRight;
 
-        var atomPopup = NewPopup(_atomJssc, 1000);
+        var atomPopup = CreatePopup(_atomJssc, 1000);
         atomPopup.popup.onOpenPopupHandlers += SyncAtomOptions;
 
-        var receiverPopup = NewPopup(_receiverJssc, 860);
+        var receiverPopup = CreatePopup(_receiverJssc, 860);
         receiverPopup.popup.onOpenPopupHandlers += SyncReceiverOptions;
 
-        var receiverTargetPopup = NewPopup(_receiverTargetJssc, 720);
+        var receiverTargetPopup = CreatePopup(_receiverTargetJssc, 720);
         receiverTargetPopup.popup.onOpenPopupHandlers += SyncReceiverTargetOptions;
 
         var periodSlider = CreateSlider(_periodJsf, true);
@@ -179,9 +178,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
         this.NewSpacer(230);
 
         var functionPopup = CreateScrollablePopup(_functionJssc);
-        functionPopup.popupPanelHeight = 160;
-        functionPopup.popup.onOpenPopupHandlers += () => OnBlurPopup(functionPopup.popup);
-        functionPopup.popup.labelText.color = Color.black;
+        ConfigurePopup(functionPopup, 160);
         popups.Add(functionPopup.popup);
 
         var curvatureSlider = CreateSlider(_curvatureJsf);
@@ -217,14 +214,99 @@ sealed class FloatParamRandomizerEE : ScriptBase
         return textField;
     }
 
-    UIDynamicPopup NewPopup(JSONStorableStringChooser jsc, int panelHeight)
+    UIDynamicPopup CreatePopup(JSONStorableStringChooser jssc, int panelHeight)
     {
-        var uiDynamicPopup = this.CreatePopupAuto(jsc);
-        uiDynamicPopup.popupPanelHeight = panelHeight;
-        uiDynamicPopup.popup.onOpenPopupHandlers += () => OnBlurPopup(uiDynamicPopup.popup);
-        uiDynamicPopup.popup.labelText.color = Color.black;
+        var uiDynamicPopup = CreateFilterablePopup(jssc);
+        ConfigurePopup(uiDynamicPopup, panelHeight);
+        AddPrevNextButtons(uiDynamicPopup);
         popups.Add(uiDynamicPopup.popup);
         return uiDynamicPopup;
+    }
+
+    void ConfigurePopup(UIDynamicPopup uiDynamic, float height, float offsetX = 0, bool upwards = false)
+    {
+        uiDynamic.popup.labelText.color = Color.black;
+
+        if(height > 0f)
+        {
+            uiDynamic.popupPanelHeight = height;
+        }
+
+        float offsetY = upwards ? height + 60 : 0;
+        uiDynamic.popup.popupPanel.offsetMin += new Vector2(offsetX, offsetY);
+        uiDynamic.popup.popupPanel.offsetMax += new Vector2(offsetX, offsetY);
+        uiDynamic.popup.onOpenPopupHandlers += () => OnBlurPopup(uiDynamic.popup);
+    }
+
+    void AddPrevNextButtons(UIDynamicPopup uiDynamic, bool cycle = false)
+    {
+        var popup = uiDynamic.popup;
+        popup.labelText.alignment = TextAnchor.UpperCenter;
+        popup.labelText.GetComponent<RectTransform>().anchorMax = new Vector2(0, 0.89f);
+
+        /* Prev */
+        {
+            var t = this.InstantiateButton(uiDynamic.transform);
+            var uiDynamicButton = t.GetComponent<UIDynamicButton>();
+            uiDynamicButton.label = "<";
+            if(cycle)
+            {
+                uiDynamicButton.AddListener(() =>
+                {
+                    popup.visible = false;
+                    popup.SetPreviousOrLastValue();
+                });
+            }
+            else
+            {
+                uiDynamicButton.AddListener(() =>
+                {
+                    popup.visible = false;
+                    popup.SetPreviousValue();
+                });
+            }
+
+            var rectT = t.GetComponent<RectTransform>();
+            rectT.pivot = Vector2.zero;
+            rectT.anchoredPosition = new Vector2(10, 0);
+            rectT.sizeDelta = Vector2.zero;
+            rectT.offsetMin = new Vector2(5, 5f);
+            rectT.offsetMax = new Vector2(80, 70);
+            rectT.anchorMin = Vector2.zero;
+            rectT.anchorMax = Vector2.zero;
+        }
+
+        /* Next */
+        {
+            var t = this.InstantiateButton(uiDynamic.transform);
+            var uiDynamicButton = t.GetComponent<UIDynamicButton>();
+            uiDynamicButton.label = ">";
+            if(cycle)
+            {
+                uiDynamicButton.AddListener(() =>
+                {
+                    popup.visible = false;
+                    popup.SetNextOrFirstValue();
+                });
+            }
+            else
+            {
+                uiDynamicButton.AddListener(() =>
+                {
+                    popup.visible = false;
+                    popup.SetNextValue();
+                });
+            }
+
+            var rectT = t.GetComponent<RectTransform>();
+            rectT.pivot = Vector2.zero;
+            rectT.anchoredPosition = Vector2.zero;
+            rectT.sizeDelta = Vector2.zero;
+            rectT.offsetMin = new Vector2(82, 5);
+            rectT.offsetMax = new Vector2(157, 70);
+            rectT.anchorMin = Vector2.zero;
+            rectT.anchorMax = Vector2.zero;
+        }
     }
 
     void SyncAtomOptions()

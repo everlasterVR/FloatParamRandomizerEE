@@ -1,8 +1,26 @@
 ﻿using System;
 using UnityEngine;
+using UnityEngine.Events;
 
 static class UIDynamicExtensions
 {
+    public static void AddListener(this UIDynamic uiDynamic, UnityAction callback)
+    {
+        if(!uiDynamic)
+        {
+            return;
+        }
+
+        var uiDynamicButton = uiDynamic as UIDynamicButton;
+        if(!uiDynamicButton)
+        {
+            SuperController.LogError($"UIDynamic {uiDynamic.name} was null or not an UIDynamicButton");
+            return;
+        }
+
+        uiDynamicButton.button.onClick.AddListener(callback);
+    }
+
     public static void SetActiveStyle(this UIDynamic element, bool active, bool setInteractable = false)
     {
         if(element == null)
