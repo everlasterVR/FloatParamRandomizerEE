@@ -90,6 +90,7 @@
     <Compile Include="src\Extensions\StringExtensions.cs" />
     <Compile Include="src\Extensions\UIDynamicExtensions.cs" />
     <Compile Include="src\FloatParamRandomizerEE.cs" />
+    <Compile Include="src\Resources\Strings.cs" />
     <Compile Include="src\ScriptBase.cs" />
     <Compile Include="src\Storables\StorableBool.cs" />
     <Compile Include="src\Storables\StorableFloat.cs" />

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,6 +8,8 @@ class ScriptBase : MVRScript
 {
     public override bool ShouldIgnore() => true;
 
+    protected bool isInitialized;
+    protected bool isRestoringFromJSON;
     protected readonly List<UIPopup> popups = new List<UIPopup>();
     UnityEventsListener _pluginUIEventsListener;
     bool _isUIBuilt;
@@ -31,6 +34,16 @@ class ScriptBase : MVRScript
     void OnUIEnabled()
     {
         SetGrayBackground();
+        StartCoroutine(OnUIEnabledCo());
+    }
+
+    IEnumerator OnUIEnabledCo()
+    {
+        while(!isInitialized)
+        {
+            yield return null;
+        }
+
         if(!_isUIBuilt)
         {
             BuildUI();
