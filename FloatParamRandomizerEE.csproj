@@ -86,18 +86,15 @@
   <ItemGroup>
     <Compile Include="src\Components\UnityEventsListener.cs" />
     <Compile Include="src\CurveFunctions.cs" />
-    <Compile Include="src\Extensions\MVRScriptExtensions.cs" />
-    <Compile Include="src\Extensions\StringExtensions.cs" />
-    <Compile Include="src\Extensions\UIDynamicExtensions.cs" />
-    <Compile Include="src\Extensions\UIPopupExtensions.cs" />
+    <Compile Include="src\Extensions.cs" />
     <Compile Include="src\FloatParamRandomizerEE.cs" />
-    <Compile Include="src\Resources\Strings.cs" />
+    <Compile Include="src\Resources.cs" />
     <Compile Include="src\ScriptBase.cs" />
     <Compile Include="src\Storables\StorableBool.cs" />
     <Compile Include="src\Storables\StorableFloat.cs" />
     <Compile Include="src\Storables\StorableString.cs" />
     <Compile Include="src\Storables\StorableStringChooser.cs" />
-    <Compile Include="src\Utils.cs" />
+    <Compile Include="src\Utils\Loggr.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />

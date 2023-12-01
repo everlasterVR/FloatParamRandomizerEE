@@ -56,34 +56,14 @@ sealed class FloatParamRandomizerEE : ScriptBase
         }
         catch(Exception e)
         {
-            Utils.LogError($"{e}");
+            Loggr.Error($"{nameof(Init)}: {e}");
         }
-    }
-
-    IEnumerator FinishInitCo()
-    {
-        yield return new WaitForEndOfFrame();
-        while(SuperController.singleton.isLoading)
-        {
-            yield return null;
-        }
-
-        SetupCallbackFunctions();
-        _functionJssc.Callback();
-        _enableRandomnessJsb.Callback();
-
-        if(!isRestoringFromJSON)
-        {
-            _atomJssc.val = containingAtom.uid;
-        }
-
-        isInitialized = true;
     }
 
     void SetupStorables()
     {
         _titleJss = new JSONStorableString("title", $"{"\n".Size(18)}{nameof(FloatParamRandomizerEE)}".Bold());
-        _versionJss = new StorableString("version", VERSION);
+        _versionJss = new StorableString(Strings.VERSION, VERSION);
         _atomJssc = new StorableStringChooser("atom", new List<string>(), null, "Atom")
         {
             representsAtomUid = true,
@@ -143,6 +123,33 @@ sealed class FloatParamRandomizerEE : ScriptBase
             }
         };
         _enableRandomnessJsb.setCallbackFunction = SyncEnableRandomness;
+    }
+
+    IEnumerator FinishInitCo()
+    {
+        yield return new WaitForEndOfFrame();
+        while(SuperController.singleton.isLoading)
+        {
+            yield return null;
+        }
+
+        try
+        {
+            SetupCallbackFunctions();
+            _functionJssc.Callback();
+            _enableRandomnessJsb.Callback();
+
+            if(!isRestoringFromJSON)
+            {
+                _atomJssc.val = containingAtom.uid;
+            }
+
+            isInitialized = true;
+        }
+        catch(Exception e)
+        {
+            Loggr.Error($"{nameof(FinishInitCo)}: {e}");
+        }
     }
 
     protected override void BuildUI()
@@ -353,7 +360,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
             _receivingAtom = SuperController.singleton.GetAtomByUid(value);
             if(_receivingAtom == null)
             {
-                Utils.LogError($"SyncAtom: Atom with uid {value} not found");
+                Loggr.Error($"{nameof(SyncAtom)}: Atom with uid {value} not found", false);
             }
         }
 
@@ -534,7 +541,8 @@ sealed class FloatParamRandomizerEE : ScriptBase
         }
         catch(Exception e)
         {
-            Utils.LogError($"{e}");
+            Loggr.Error($"{nameof(Update)}: {e}");
+            enabledJSON.val = false; // TODO test, TODO error color
         }
     }
 
@@ -581,6 +589,21 @@ sealed class FloatParamRandomizerEE : ScriptBase
     )
     {
         isRestoringFromJSON = true;
+
+        /* Disable early to allow correct enabled value to be used during Init */
+        if(jc.HasKey("enabled") && !jc["enabled"].AsBool)
+        {
+            enabled = false;
+            // TODO enabledJSON
+        }
+
+        /* Prevent overriding versionJss.val from JSON. Version stored in JSON just for information,
+         * but could be intercepted here and used to save a "loadedFromVersion" value.
+         */
+        if(jc.HasKey(Strings.VERSION))
+        {
+            jc[Strings.VERSION] = VERSION;
+        }
 
         /* Ensure loading a SubScene file sets the correct value to JSONStorableStringChooser. */
         if(jc.HasKey("atom"))
@@ -655,7 +678,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
         }
         catch(Exception e)
         {
-            Utils.LogError($"{e}");
+            Loggr.Error($"{nameof(OnDestroy)}: {e}");
         }
     }
 }

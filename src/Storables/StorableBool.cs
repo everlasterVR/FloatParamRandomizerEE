@@ -5,6 +5,6 @@ sealed class StorableBool : JSONStorableBool
         storeType = StoreType.Full;
     }
 
-    internal void Callback() => setCallbackFunction?.Invoke(val);
+    public void Callback() => setCallbackFunction?.Invoke(val);
     public void RegisterTo(MVRScript script) => script.RegisterBool(this);
 }

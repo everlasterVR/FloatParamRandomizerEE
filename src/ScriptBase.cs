@@ -38,30 +38,33 @@ class ScriptBase : MVRScript
 
     public override void InitUI()
     {
-        base.InitUI();
-        if(UITransform == null || _pluginUIEventsListener != null)
+        if(ShouldIgnore())
         {
             return;
         }
 
-        _pluginUIEventsListener = UITransform.gameObject.AddComponent<UnityEventsListener>();
-        if(_pluginUIEventsListener != null)
+        base.InitUI();
+        if(UITransform == null)
         {
+            return;
+        }
+
+        SetGrayBackground();
+        if(!_pluginUIEventsListener)
+        {
+            _pluginUIEventsListener = UITransform.gameObject.AddComponent<UnityEventsListener>();
             _pluginUIEventsListener.enabledHandlers += OnUIEnabled;
             _pluginUIEventsListener.disabledHandlers += OnBlur;
             _pluginUIEventsListener.clickHandlers += OnBlur;
         }
     }
 
-    void OnUIEnabled()
+    // TODO test postpone after initialized
+    void OnUIEnabled() => StartOrPostponeCoroutine(OnUIEnabledCo(), () =>
     {
-        SetGrayBackground();
-        StartOrPostponeCoroutine(OnUIEnabledCo(), () =>
-        {
-            _postponedInfoField = CreateTextField(new JSONStorableString("info", "Enable the atom to initialize.".Bold()));
-            _postponedInfoField.backgroundColor = Color.clear;
-        });
-    }
+        _postponedInfoField = CreateTextField(new JSONStorableString("info", "Enable the atom to initialize.".Bold()));
+        _postponedInfoField.backgroundColor = Color.clear;
+    });
 
     IEnumerator OnUIEnabledCo()
     {

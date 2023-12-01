@@ -12,6 +12,6 @@ sealed class StorableStringChooser : JSONStorableStringChooser
         storeType = StoreType.Full;
     }
 
-    internal void Callback() => setCallbackFunction?.Invoke(val);
+    public void Callback() => setCallbackFunction?.Invoke(val);
     public void RegisterTo(MVRScript script) => script.RegisterStringChooser(this);
 }
