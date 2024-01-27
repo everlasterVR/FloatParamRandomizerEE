@@ -15,6 +15,7 @@ using static CurveFunctions;
 sealed class FloatParamRandomizerEE : ScriptBase
 {
     public const string VERSION = "0.0.0";
+    readonly LogBuilder _logBuilder = new LogBuilder();
     public override bool ShouldIgnore() => false;
 
     JSONStorableString _titleJss;
@@ -56,7 +57,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
         }
         catch(Exception e)
         {
-            Loggr.Error($"{nameof(Init)}: {e}");
+            _logBuilder.Error("{0}: {1}", nameof(Init), e);
         }
     }
 
@@ -148,7 +149,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
         }
         catch(Exception e)
         {
-            Loggr.Error($"{nameof(FinishInitCo)}: {e}");
+            _logBuilder.Error("{0}: {1}", nameof(FinishInitCo), e);
         }
     }
 
@@ -360,7 +361,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
             _receivingAtom = SuperController.singleton.GetAtomByUid(value);
             if(_receivingAtom == null)
             {
-                Loggr.Error($"{nameof(SyncAtom)}: Atom with uid {value} not found", false);
+                _logBuilder.ErrorNoReport("{0}: Atom with uid {1} not found", nameof(SyncAtom), value);
             }
         }
 
@@ -541,7 +542,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
         }
         catch(Exception e)
         {
-            Loggr.Error($"{nameof(Update)}: {e}");
+            _logBuilder.ErrorNoReport("{0}: {1}", nameof(Update), e);
             enabledJSON.val = false; // TODO test, TODO error color
         }
     }
@@ -678,7 +679,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
         }
         catch(Exception e)
         {
-            Loggr.Error($"{nameof(OnDestroy)}: {e}");
+            _logBuilder.Error("{0}: {1}", nameof(OnDestroy), e);
         }
     }
 }

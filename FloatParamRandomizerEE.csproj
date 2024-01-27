@@ -94,7 +94,7 @@
     <Compile Include="src\Storables\StorableFloat.cs" />
     <Compile Include="src\Storables\StorableString.cs" />
     <Compile Include="src\Storables\StorableStringChooser.cs" />
-    <Compile Include="src\Utils\Loggr.cs" />
+    <Compile Include="src\Utils\LogBuilder.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />

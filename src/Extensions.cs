@@ -1,8 +1,26 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
+
+[SuppressMessage("ReSharper", "InconsistentNaming")]
+static class IEnumerableExtensions
+{
+    [SuppressMessage("ReSharper", "ConvertIfStatementToReturnStatement")]
+    public static string ToPrettyString<T>(this IEnumerable<T> enumerable, string separator = "\n")
+    {
+        if(enumerable == null)
+        {
+            return "null";
+        }
+
+        return string.Join(separator, enumerable.Select(item => item?.ToString() ?? "null").ToArray());
+    }
+}
 
 static class MVRScriptExtensions
 {
@@ -44,6 +62,27 @@ static class StringExtensions
     public static string Color(this string str, string color) => $"<color={color}>{str}</color>";
 
     public static string Color(this string str, Color color) => str.Color($"#{ColorUtility.ToHtmlStringRGB(color)}");
+}
+
+static class StringBuilderExtensions
+{
+    public static StringBuilder AppendBold(this StringBuilder sb, string str) =>
+        sb.AppendFormat("<b>{0}</b>", str);
+
+    public static StringBuilder AppendItalic(this StringBuilder sb, string str) =>
+        sb.AppendFormat("<i>{0}</i>", str);
+
+    public static StringBuilder AppendSize(this StringBuilder sb, string str, int size) =>
+        sb.AppendFormat("<size={0}>{1}</size>", size, str);
+
+    public static StringBuilder AppendColor(this StringBuilder sb, string str, Color color) =>
+        sb.AppendFormat("<color=#{0}>{1}</color>", ColorUtility.ToHtmlStringRGB(color), str);
+
+    public static StringBuilder Clear(this StringBuilder sb)
+    {
+        sb.Length = 0;
+        return sb;
+    }
 }
 
 static class UIDynamicExtensions
