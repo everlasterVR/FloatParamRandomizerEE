@@ -338,6 +338,8 @@ sealed class FloatParamRandomizerEE : ScriptBase
         {
             _receiverJssc.val = Strings.SELECT;
         }
+
+        _receiverJssc.Callback();
     }
 
     void SyncReceiver(string value)
@@ -361,6 +363,8 @@ sealed class FloatParamRandomizerEE : ScriptBase
         {
             _receiverTargetJssc.val = Strings.SELECT;
         }
+
+        _receiverTargetJssc.Callback();
     }
 
     void SyncReceiverTarget(string value)
