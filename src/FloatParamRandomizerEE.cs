@@ -319,6 +319,11 @@ sealed class FloatParamRandomizerEE : ScriptBase
 
     void SyncAtom(string value)
     {
+        if(insideRestore)
+        {
+            return;
+        }
+
         if(string.IsNullOrEmpty(value) || value == Strings.SELECT)
         {
             _receivingAtom = null;
@@ -344,6 +349,11 @@ sealed class FloatParamRandomizerEE : ScriptBase
 
     void SyncReceiver(string value)
     {
+        if(insideRestore)
+        {
+            return;
+        }
+
         if(!_receivingAtom || string.IsNullOrEmpty(value) || value == Strings.SELECT)
         {
             _receiverStorable = null;
@@ -369,6 +379,11 @@ sealed class FloatParamRandomizerEE : ScriptBase
 
     void SyncReceiverTarget(string value)
     {
+        if(insideRestore)
+        {
+            return;
+        }
+
         if(!_receivingAtom || !_receiverStorable || string.IsNullOrEmpty(value) || value == Strings.SELECT)
         {
             _receiverTarget = null;
@@ -388,6 +403,8 @@ sealed class FloatParamRandomizerEE : ScriptBase
         }
     }
 
+    bool _resetValues = true;
+
     void UpdateStorableFloatsForTarget()
     {
         _lowerValueJsf.min = _receiverTarget.min;
@@ -398,7 +415,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
         _currentValueJsf.max = _receiverTarget.max;
         _targetValueJsf.min = _receiverTarget.min;
         _targetValueJsf.max = _receiverTarget.max;
-        if(!insideRestore)
+        if(_resetValues)
         {
             _lowerValueJsf.val = _receiverTarget.val;
             _upperValueJsf.val = _receiverTarget.val;
@@ -444,9 +461,9 @@ sealed class FloatParamRandomizerEE : ScriptBase
         {
             _missingReceiverStoreId = null;
             _receiverTargetJssc.choices = new List<string>(_receiverStorable.GetFloatParamNames());
-            insideRestore = true;
+            _resetValues = false;
             _receiverTargetJssc.Callback();
-            insideRestore = false;
+            _resetValues = true;
         }
     }
 
@@ -461,9 +478,9 @@ sealed class FloatParamRandomizerEE : ScriptBase
         if(_receiverTarget != null)
         {
             _missingReceiverTargetName = null;
-            insideRestore = true;
+            _resetValues = false;
             UpdateStorableFloatsForTarget();
-            insideRestore = false;
+            _resetValues = true;
         }
     }
 
@@ -549,16 +566,6 @@ sealed class FloatParamRandomizerEE : ScriptBase
         }
     }
 
-    public override JSONClass GetJSON(bool includePhysical = true, bool includeAppearance = true, bool forceStore = false)
-    {
-        var jc = base.GetJSON(includePhysical, includeAppearance, forceStore);
-        /* representsAtomUid = true causes this to be empty because the val doesn't map to an atom by uid, but by uidWithoutSubScenePath.
-         * Setting the value manually forces the value to be stored in the subscene save JSON.
-         */
-        jc["atom"] = _atomJssc.val;
-        return jc;
-    }
-
     public override void RestoreFromJSON(
         JSONClass jc,
         bool restorePhysical = true,
@@ -567,12 +574,10 @@ sealed class FloatParamRandomizerEE : ScriptBase
         bool setMissingToDefault = true
     )
     {
-        insideRestore = true;
         /* Disable early to allow correct enabled value to be used during Init */
         if(jc.HasKey("enabled") && !jc["enabled"].AsBool)
         {
-            enabled = false;
-            // TODO enabledJSON
+            enabledJSON.val = false;
         }
 
         /* Prevent overriding versionJss.val from JSON. Version stored in JSON just for information,
@@ -597,9 +602,9 @@ sealed class FloatParamRandomizerEE : ScriptBase
         }
 
         base.RestoreFromJSON(jc, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault);
-        insideRestore = true;
         subScenePrefix = null;
 
+        _resetValues = false;
         // ensure correct order for restoring atom, receiver and receiverTarget
         _atomJssc.Callback();
         if(!string.IsNullOrEmpty(receiverStoreId))
@@ -613,24 +618,23 @@ sealed class FloatParamRandomizerEE : ScriptBase
                 _receiverTargetJssc.Callback();
             }
         }
-
-        insideRestore = false;
+        _resetValues = true;
     }
 
     /* Ensure loading a SubScene file sets the correct value to JSONStorableStringChooser. */
     void FixRestoreFromSubscene(JSONClass jc)
     {
-        if(jc.HasKey("atom"))
+        if(!jc.HasKey("atom"))
         {
-            var subScene = containingAtom.containingSubScene;
-            var atom = SuperController.singleton.GetAtomByUid(jc["atom"].Value);
-            if(subScene && (!atom || atom.containingSubScene != subScene))
-            {
-                if(atom)
-                {
-                    jc["atom"] = atom.uidWithoutSubScenePath;
-                }
+            return;
+        }
 
+        var subScene = containingAtom.containingSubScene;
+        if(subScene != null)
+        {
+            var atom = SuperController.singleton.GetAtomByUid(jc["atom"].Value);
+            if(atom == null || atom.containingSubScene != subScene)
+            {
                 subScenePrefix = containingAtom.uid.Replace(containingAtom.uidWithoutSubScenePath, "");
             }
         }
