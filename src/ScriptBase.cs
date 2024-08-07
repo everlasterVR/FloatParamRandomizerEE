@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -97,10 +96,17 @@ class ScriptBase : MVRScript
 
     void OnBlur() => OnBlurPopup(null);
 
-    protected void OnBlurPopup(UIPopup openedPopup) =>
-        popups.Where(popup => popup != openedPopup)
-            .ToList()
-            .ForEach(popup => popup.visible = false);
+    protected void OnBlurPopup(UIPopup openedPopup)
+    {
+        for(int i = 0; i < popups.Count; i++)
+        {
+            var popup = popups[i];
+            if(popup != openedPopup)
+            {
+                popup.visible = false;
+            }
+        }
+    }
 
     protected void BaseOnDestroy()
     {
