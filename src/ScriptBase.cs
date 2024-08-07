@@ -8,8 +8,7 @@ class ScriptBase : MVRScript
 {
     public override bool ShouldIgnore() => true;
 
-    protected bool isInitialized;
-    protected bool isRestoringFromJSON;
+    protected bool initialized;
     protected readonly List<UIPopup> popups = new List<UIPopup>();
     UnityEventsListener _pluginUIEventsListener;
     UIDynamicTextField _postponedInfoField;
@@ -72,14 +71,14 @@ class ScriptBase : MVRScript
             RemoveTextField(_postponedInfoField);
         }
 
-        while(!isInitialized)
+        while(!initialized)
         {
             yield return null;
         }
 
         if(!_isUIBuilt)
         {
-            BuildUI();
+            CreateUI();
             _isUIBuilt = true;
         }
     }
@@ -90,7 +89,7 @@ class ScriptBase : MVRScript
         background.color = new Color(0.85f, 0.85f, 0.85f);
     }
 
-    protected virtual void BuildUI()
+    protected virtual void CreateUI()
     {
     }
 
@@ -108,7 +107,7 @@ class ScriptBase : MVRScript
         }
     }
 
-    protected void BaseOnDestroy()
+    protected virtual void OnDestroy()
     {
         DestroyImmediate(_pluginUIEventsListener);
         _pluginUIEventsListener = null;

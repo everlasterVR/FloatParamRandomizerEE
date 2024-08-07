@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -51,9 +50,12 @@ sealed class FloatParamRandomizerEE : ScriptBase
         try
         {
             SetupStorables();
-            SyncAtomOptions();
+            _functionJssc.Callback();
+            _enableRandomnessJsb.Callback();
+            _atomJssc.val = containingAtom.uid;
+
             SuperController.singleton.onAtomUIDRenameHandlers += OnAtomRenamed;
-            StartOrPostponeCoroutine(FinishInitCo());
+            initialized = true;
         }
         catch(Exception e)
         {
@@ -69,6 +71,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
         {
             representsAtomUid = true,
         };
+        SyncAtomOptions();
         _receiverJssc = new StorableStringChooser("receiver", null, null, "Receiver");
         _receiverTargetJssc = new StorableStringChooser("receiverTarget", null, null, "Target");
 
@@ -101,10 +104,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
         _curvatureJsf.RegisterTo(this);
         _functionJssc.RegisterTo(this);
         _enableRandomnessJsb.RegisterTo(this);
-    }
 
-    void SetupCallbackFunctions()
-    {
         _atomJssc.setCallbackFunction = SyncAtom;
         _receiverJssc.setCallbackFunction = SyncReceiver;
         _receiverTargetJssc.setCallbackFunction = SyncReceiverTarget;
@@ -126,34 +126,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
         _enableRandomnessJsb.setCallbackFunction = SyncEnableRandomness;
     }
 
-    IEnumerator FinishInitCo()
-    {
-        yield return new WaitForEndOfFrame();
-        while(SuperController.singleton.isLoading)
-        {
-            yield return null;
-        }
-
-        try
-        {
-            SetupCallbackFunctions();
-            _functionJssc.Callback();
-            _enableRandomnessJsb.Callback();
-
-            if(!isRestoringFromJSON)
-            {
-                _atomJssc.val = containingAtom.uid;
-            }
-
-            isInitialized = true;
-        }
-        catch(Exception e)
-        {
-            _logBuilder.Error("{0}: {1}", nameof(FinishInitCo), e);
-        }
-    }
-
-    protected override void BuildUI()
+    protected override void CreateUI()
     {
         var titleTextField = CreateTitleTextField(_titleJss, 72, false);
         titleTextField.UItext.fontSize = 36;
@@ -319,13 +292,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
 
     void SyncAtomOptions()
     {
-        var options = new List<string>();
-        foreach(var atom in SuperController.singleton.GetAtoms())
-        {
-            options.Add(atom.uid);
-        }
-
-        _atomJssc.choices = options;
+        _atomJssc.choices = SuperController.singleton.GetAtoms().Select(atom => atom.uid).ToList();
     }
 
     void SyncReceiverOptions()
@@ -352,9 +319,10 @@ sealed class FloatParamRandomizerEE : ScriptBase
 
     void SyncAtom(string value)
     {
-        if(string.IsNullOrEmpty(value) || string.Equals(value, Strings.SELECT))
+        if(string.IsNullOrEmpty(value) || value == Strings.SELECT)
         {
             _receivingAtom = null;
+            _atomJssc.valNoCallback = Strings.SELECT;
         }
         else
         {
@@ -374,9 +342,10 @@ sealed class FloatParamRandomizerEE : ScriptBase
 
     void SyncReceiver(string value)
     {
-        if(!_receivingAtom || string.IsNullOrEmpty(value) || string.Equals(value, Strings.SELECT))
+        if(!_receivingAtom || string.IsNullOrEmpty(value) || value == Strings.SELECT)
         {
             _receiverStorable = null;
+            _receiverJssc.valNoCallback = Strings.SELECT;
         }
         else
         {
@@ -396,9 +365,10 @@ sealed class FloatParamRandomizerEE : ScriptBase
 
     void SyncReceiverTarget(string value)
     {
-        if(!_receivingAtom || !_receiverStorable || string.IsNullOrEmpty(value) || string.Equals(value, Strings.SELECT))
+        if(!_receivingAtom || !_receiverStorable || string.IsNullOrEmpty(value) || value == Strings.SELECT)
         {
             _receiverTarget = null;
+            _receiverTargetJssc.valNoCallback = Strings.SELECT;
         }
         else
         {
@@ -424,7 +394,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
         _currentValueJsf.max = _receiverTarget.max;
         _targetValueJsf.min = _receiverTarget.min;
         _targetValueJsf.max = _receiverTarget.max;
-        if(!insideRestore && !isRestoringFromJSON)
+        if(!insideRestore)
         {
             _lowerValueJsf.val = _receiverTarget.val;
             _upperValueJsf.val = _receiverTarget.val;
@@ -493,6 +463,8 @@ sealed class FloatParamRandomizerEE : ScriptBase
         }
     }
 
+    float _timer;
+    const float INTERVAL = 0.1f;
     bool _flip;
     float _accumulated;
     float _start;
@@ -500,17 +472,19 @@ sealed class FloatParamRandomizerEE : ScriptBase
 
     void Update()
     {
-        if(!isInitialized || isRestoringFromJSON)
+        if(!initialized)
         {
             return;
         }
 
         try
         {
-            if(Time.frameCount % 6 == 0)
+            _timer += Time.deltaTime;
+            if (_timer >= INTERVAL)
             {
                 CheckMissingReceiver();
                 CheckMissingReceiverTarget();
+                _timer = 0f;
             }
 
             if(_accumulated > _periodJsf.val)
@@ -589,8 +563,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
         bool setMissingToDefault = true
     )
     {
-        isRestoringFromJSON = true;
-
+        insideRestore = true;
         /* Disable early to allow correct enabled value to be used during Init */
         if(jc.HasKey("enabled") && !jc["enabled"].AsBool)
         {
@@ -606,7 +579,43 @@ sealed class FloatParamRandomizerEE : ScriptBase
             jc[Strings.VERSION] = VERSION;
         }
 
-        /* Ensure loading a SubScene file sets the correct value to JSONStorableStringChooser. */
+        FixRestoreFromSubscene(jc);
+        string receiverStoreId = null;
+        if(jc.HasKey("receiver"))
+        {
+            receiverStoreId = jc["receiver"].Value;
+        }
+
+        string receiverTargetName = null;
+        if(jc.HasKey("receiverTarget"))
+        {
+            receiverTargetName = jc["receiverTarget"].Value;
+        }
+
+        base.RestoreFromJSON(jc, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault);
+        insideRestore = true;
+        subScenePrefix = null;
+
+        // ensure correct order for restoring atom, receiver and receiverTarget
+        _atomJssc.Callback();
+        if(!string.IsNullOrEmpty(receiverStoreId))
+        {
+            _receiverJssc.valNoCallback = receiverStoreId;
+            _receiverJssc.Callback();
+
+            if(!string.IsNullOrEmpty(receiverTargetName))
+            {
+                _receiverTargetJssc.valNoCallback = receiverTargetName;
+                _receiverTargetJssc.Callback();
+            }
+        }
+
+        insideRestore = false;
+    }
+
+    /* Ensure loading a SubScene file sets the correct value to JSONStorableStringChooser. */
+    void FixRestoreFromSubscene(JSONClass jc)
+    {
         if(jc.HasKey("atom"))
         {
             var subScene = containingAtom.containingSubScene;
@@ -621,60 +630,13 @@ sealed class FloatParamRandomizerEE : ScriptBase
                 subScenePrefix = containingAtom.uid.Replace(containingAtom.uidWithoutSubScenePath, "");
             }
         }
-
-        StartOrPostponeCoroutine(RestoreFromJSONCo(jc, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault));
     }
 
-    // ensure correct order for restoring atom, receiver and receiverTarget
-    IEnumerator RestoreFromJSONCo(
-        JSONClass jc,
-        bool restorePhysical = true,
-        bool restoreAppearance = true,
-        JSONArray presetAtoms = null,
-        bool setMissingToDefault = true
-    )
-    {
-        while(!isInitialized)
-        {
-            yield return null;
-        }
-
-        string receiverStoreId = null;
-        if(jc.HasKey("receiver"))
-        {
-            receiverStoreId = jc["receiver"].Value;
-        }
-
-        string receiverTargetName = null;
-        if(jc.HasKey("receiverTarget"))
-        {
-            receiverTargetName = jc["receiverTarget"].Value;
-        }
-
-        base.RestoreFromJSON(jc, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault);
-        subScenePrefix = null;
-
-        _atomJssc.Callback();
-        if(!string.IsNullOrEmpty(receiverStoreId))
-        {
-            _receiverJssc.valNoCallback = receiverStoreId;
-            _receiverJssc.Callback();
-
-            if(!string.IsNullOrEmpty(receiverTargetName))
-            {
-                _receiverTargetJssc.valNoCallback = receiverTargetName;
-                _receiverTargetJssc.Callback();
-            }
-        }
-
-        isRestoringFromJSON = false;
-    }
-
-    void OnDestroy()
+    protected override void OnDestroy()
     {
         try
         {
-            BaseOnDestroy();
+            base.OnDestroy();
             SuperController.singleton.onAtomUIDRenameHandlers -= OnAtomRenamed;
         }
         catch(Exception e)
