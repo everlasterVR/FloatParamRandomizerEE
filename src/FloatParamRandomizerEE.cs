@@ -13,7 +13,7 @@ using static CurveFunctions;
 /// </summary>
 sealed class FloatParamRandomizerEE : ScriptBase
 {
-    public const string VERSION = "0.0.0";
+    const string VERSION = "0.0.0";
     readonly LogBuilder _logBuilder = new LogBuilder();
     public override bool ShouldIgnore() => false;
 
@@ -59,7 +59,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
         }
         catch(Exception e)
         {
-            _logBuilder.Error("{0}: {1}", nameof(Init), e);
+            _logBuilder.Exception(e);
         }
     }
 
@@ -334,7 +334,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
             _receivingAtom = SuperController.singleton.GetAtomByUid(value);
             if(_receivingAtom == null)
             {
-                _logBuilder.ErrorNoReport("{0}: Atom with uid {1} not found", nameof(SyncAtom), value);
+                _logBuilder.Error($"SyncAtom: Atom with uid {value} not found", false);
             }
         }
 
@@ -537,32 +537,39 @@ sealed class FloatParamRandomizerEE : ScriptBase
         }
         catch(Exception e)
         {
-            _logBuilder.ErrorNoReport("{0}: {1}", nameof(Update), e);
-            enabledJSON.val = false; // TODO test, TODO error color
+            _logBuilder.Exception(e);
+            enabledJSON.val = false;
         }
     }
 
     void OnAtomRenamed(string oldName, string newName)
     {
-        SyncAtomOptions();
-        var renamedAtom = SuperController.singleton.GetAtomByUid(newName);
+        try
+        {
+            SyncAtomOptions();
+            var renamedAtom = SuperController.singleton.GetAtomByUid(newName);
 
-        if(_atomJssc.val == oldName)
-        {
-            _atomJssc.valNoCallback = "";
-            _atomJssc.valNoCallback = renamedAtom.uid;
-        }
-        else if(renamedAtom.isSubSceneType)
-        {
-            foreach(var atom in renamedAtom.subSceneComponent.atomsInSubScene)
+            if(_atomJssc.val == oldName)
             {
-                if(_atomJssc.val == atom.uid)
+                _atomJssc.valNoCallback = "";
+                _atomJssc.valNoCallback = renamedAtom.uid;
+            }
+            else if(renamedAtom.isSubSceneType)
+            {
+                foreach(var atom in renamedAtom.subSceneComponent.atomsInSubScene)
                 {
-                    _atomJssc.valNoCallback = "";
-                    _atomJssc.valNoCallback = atom.uid;
-                    break;
+                    if(_atomJssc.val == atom.uid)
+                    {
+                        _atomJssc.valNoCallback = "";
+                        _atomJssc.valNoCallback = atom.uid;
+                        break;
+                    }
                 }
             }
+        }
+        catch(Exception e)
+        {
+            _logBuilder.Exception(e);
         }
     }
 
@@ -574,51 +581,58 @@ sealed class FloatParamRandomizerEE : ScriptBase
         bool setMissingToDefault = true
     )
     {
-        /* Disable early to allow correct enabled value to be used during Init */
-        if(jc.HasKey("enabled") && !jc["enabled"].AsBool)
+        try
         {
-            enabledJSON.val = false;
-        }
-
-        /* Prevent overriding versionJss.val from JSON. Version stored in JSON just for information,
-         * but could be intercepted here and used to save a "loadedFromVersion" value.
-         */
-        if(jc.HasKey(Strings.VERSION))
-        {
-            jc[Strings.VERSION] = VERSION;
-        }
-
-        FixRestoreFromSubscene(jc);
-        string receiverStoreId = null;
-        if(jc.HasKey("receiver"))
-        {
-            receiverStoreId = jc["receiver"].Value;
-        }
-
-        string receiverTargetName = null;
-        if(jc.HasKey("receiverTarget"))
-        {
-            receiverTargetName = jc["receiverTarget"].Value;
-        }
-
-        base.RestoreFromJSON(jc, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault);
-        subScenePrefix = null;
-
-        _resetValues = false;
-        // ensure correct order for restoring atom, receiver and receiverTarget
-        _atomJssc.Callback();
-        if(!string.IsNullOrEmpty(receiverStoreId))
-        {
-            _receiverJssc.valNoCallback = receiverStoreId;
-            _receiverJssc.Callback();
-
-            if(!string.IsNullOrEmpty(receiverTargetName))
+            /* Disable early to allow correct enabled value to be used during Init */
+            if(jc.HasKey("enabled") && !jc["enabled"].AsBool)
             {
-                _receiverTargetJssc.valNoCallback = receiverTargetName;
-                _receiverTargetJssc.Callback();
+                enabledJSON.val = false;
             }
+
+            /* Prevent overriding versionJss.val from JSON. Version stored in JSON just for information,
+             * but could be intercepted here and used to save a "loadedFromVersion" value.
+             */
+            if(jc.HasKey(Strings.VERSION))
+            {
+                jc[Strings.VERSION] = VERSION;
+            }
+
+            FixRestoreFromSubscene(jc);
+            string receiverStoreId = null;
+            if(jc.HasKey("receiver"))
+            {
+                receiverStoreId = jc["receiver"].Value;
+            }
+
+            string receiverTargetName = null;
+            if(jc.HasKey("receiverTarget"))
+            {
+                receiverTargetName = jc["receiverTarget"].Value;
+            }
+
+            base.RestoreFromJSON(jc, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault);
+            subScenePrefix = null;
+
+            _resetValues = false;
+            // ensure correct order for restoring atom, receiver and receiverTarget
+            _atomJssc.Callback();
+            if(!string.IsNullOrEmpty(receiverStoreId))
+            {
+                _receiverJssc.valNoCallback = receiverStoreId;
+                _receiverJssc.Callback();
+
+                if(!string.IsNullOrEmpty(receiverTargetName))
+                {
+                    _receiverTargetJssc.valNoCallback = receiverTargetName;
+                    _receiverTargetJssc.Callback();
+                }
+            }
+            _resetValues = true;
         }
-        _resetValues = true;
+        catch(Exception e)
+        {
+            _logBuilder.Exception(e);
+        }
     }
 
     /* Ensure loading a SubScene file sets the correct value to JSONStorableStringChooser. */
@@ -642,14 +656,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
 
     protected override void OnDestroy()
     {
-        try
-        {
-            base.OnDestroy();
-            SuperController.singleton.onAtomUIDRenameHandlers -= OnAtomRenamed;
-        }
-        catch(Exception e)
-        {
-            _logBuilder.Error("{0}: {1}", nameof(OnDestroy), e);
-        }
+        base.OnDestroy();
+        SuperController.singleton.onAtomUIDRenameHandlers -= OnAtomRenamed;
     }
 }
