@@ -55,6 +55,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
             _atomJssc.val = containingAtom.uid;
 
             SuperController.singleton.onAtomUIDRenameHandlers += OnAtomRenamed;
+            SuperController.singleton.onAtomRemovedHandlers += OnAtomRemoved;
             initialized = true;
         }
         catch(Exception e)
@@ -67,7 +68,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
     {
         _titleJss = new JSONStorableString("title", $"{"\n".Size(18)}{nameof(FloatParamRandomizerEE)}".Bold());
         _versionJss = new StorableString(Strings.VERSION, VERSION);
-        _atomJssc = new StorableStringChooser("atom", new List<string>(), null, "Atom")
+        _atomJssc = new StorableStringChooser("atom", null, null, "Atom")
         {
             representsAtomUid = true,
         };
@@ -298,7 +299,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
     void SyncReceiverOptions()
     {
         var options = new List<string>();
-        if(_receivingAtom)
+        if(_receivingAtom != null)
         {
             options.AddRange(_receivingAtom.GetStorableIDs().Where(id => !string.Equals(id, storeId)));
         }
@@ -309,7 +310,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
     void SyncReceiverTargetOptions()
     {
         var options = new List<string>();
-        if(_receiverStorable)
+        if(_receiverStorable != null)
         {
             options.AddRange(_receiverStorable.GetFloatParamNames());
         }
@@ -354,7 +355,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
             return;
         }
 
-        if(!_receivingAtom || string.IsNullOrEmpty(value) || value == Strings.SELECT)
+        if(_receivingAtom == null || string.IsNullOrEmpty(value) || value == Strings.SELECT)
         {
             _receiverStorable = null;
             _receiverJssc.valNoCallback = Strings.SELECT;
@@ -384,7 +385,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
             return;
         }
 
-        if(!_receivingAtom || !_receiverStorable || string.IsNullOrEmpty(value) || value == Strings.SELECT)
+        if(_receivingAtom == null || _receiverStorable == null || string.IsNullOrEmpty(value) || value == Strings.SELECT)
         {
             _receiverTarget = null;
             _receiverTargetJssc.valNoCallback = Strings.SELECT;
@@ -451,7 +452,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
 
     void CheckMissingReceiver()
     {
-        if(string.IsNullOrEmpty(_missingReceiverStoreId) || !_receivingAtom)
+        if(string.IsNullOrEmpty(_missingReceiverStoreId) || _receivingAtom == null)
         {
             return;
         }
@@ -469,7 +470,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
 
     void CheckMissingReceiverTarget()
     {
-        if(string.IsNullOrEmpty(_missingReceiverTargetName) || !_receiverStorable || !_receivingAtom)
+        if(string.IsNullOrEmpty(_missingReceiverTargetName) || _receiverStorable == null || _receivingAtom == null)
         {
             return;
         }
@@ -573,6 +574,21 @@ sealed class FloatParamRandomizerEE : ScriptBase
         }
     }
 
+    void OnAtomRemoved(Atom atom)
+    {
+        try
+        {
+            if(_atomJssc.val == atom.uid)
+            {
+                _atomJssc.val = Strings.SELECT;
+            }
+        }
+        catch(Exception e)
+        {
+            _logBuilder.Exception(e);
+        }
+    }
+
     public override void RestoreFromJSON(
         JSONClass jc,
         bool restorePhysical = true,
@@ -583,12 +599,6 @@ sealed class FloatParamRandomizerEE : ScriptBase
     {
         try
         {
-            /* Disable early to allow correct enabled value to be used during Init */
-            if(jc.HasKey("enabled") && !jc["enabled"].AsBool)
-            {
-                enabledJSON.val = false;
-            }
-
             /* Prevent overriding versionJss.val from JSON. Version stored in JSON just for information,
              * but could be intercepted here and used to save a "loadedFromVersion" value.
              */
@@ -658,5 +668,6 @@ sealed class FloatParamRandomizerEE : ScriptBase
     {
         base.OnDestroy();
         SuperController.singleton.onAtomUIDRenameHandlers -= OnAtomRenamed;
+        SuperController.singleton.onAtomRemovedHandlers -= OnAtomRemoved;
     }
 }
