@@ -3,8 +3,6 @@
 .idea/
 bin/
 obj/
-local/
 publish/
 *.fav
-todo.md
-*.cslist
+Folder.DotSettings.user
