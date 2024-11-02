@@ -1,3 +1,4 @@
+using everlaster;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -11,162 +12,41 @@ using static CurveFunctions;
 /// Randomizes float values with a smooth transition from current value towards target value.
 /// Source: https://github.com/everlasterVR/FloatParamRandomizerEE
 /// </summary>
-sealed class FloatParamRandomizerEE : ScriptBase
+sealed class FloatParamRandomizerEE : Script
 {
-    const string VERSION = "0.0.0";
-    readonly LogBuilder _logBuilder = new LogBuilder();
     public override bool ShouldIgnore() => false;
-
-    JSONStorableString _titleJss;
-    StorableString _versionJss;
-    StorableStringChooser _atomJssc;
-    StorableStringChooser _receiverJssc;
-    StorableStringChooser _receiverTargetJssc;
-    StorableStringChooser _functionJssc;
-    StorableFloat _curvatureJsf;
-    StorableFloat _periodJsf;
-    StorableFloat _quicknessJsf;
-    StorableFloat _lowerValueJsf;
-    StorableFloat _upperValueJsf;
-    StorableBool _enableRandomnessJsb;
-    JSONStorableFloat _targetValueJsf;
-    JSONStorableFloat _currentValueJsf;
-    JSONStorableFloat _receiverTarget;
-
-    UIDynamicSlider _targetValueSlider;
-
-    string _missingReceiverStoreId;
-    string _missingReceiverTargetName;
-    Atom _receivingAtom;
-    JSONStorable _receiverStorable;
-
-    Dictionary<string, Func<float, float>> _functionOptions;
-    Func<float, float> _function;
-    float _exponent;
-    const float MIDPOINT = 0.5f;
-
-    public override void Init()
-    {
-        try
-        {
-            SetupStorables();
-            _functionJssc.Callback();
-            _enableRandomnessJsb.Callback();
-            _atomJssc.val = containingAtom.uid;
-
-            SuperController.singleton.onAtomUIDRenameHandlers += OnAtomRenamed;
-            SuperController.singleton.onAtomRemovedHandlers += OnAtomRemoved;
-            initialized = true;
-        }
-        catch(Exception e)
-        {
-            _logBuilder.Exception(e);
-        }
-    }
-
-    void SetupStorables()
-    {
-        _titleJss = new JSONStorableString("title", $"{"\n".Size(18)}{nameof(FloatParamRandomizerEE)}".Bold());
-        _versionJss = new StorableString(Strings.VERSION, VERSION);
-        _atomJssc = new StorableStringChooser("atom", null, null, "Atom")
-        {
-            representsAtomUid = true,
-        };
-        SyncAtomOptions();
-        _receiverJssc = new StorableStringChooser("receiver", null, null, "Receiver");
-        _receiverTargetJssc = new StorableStringChooser("receiverTarget", null, null, "Target");
-
-        // any function can be added here as long as it takes an x in range [0, 1] and outputs an y in range [0, 1]
-        _functionOptions = new Dictionary<string, Func<float, float>>
-        {
-            { "Ease In-Out", value => ParametricSmoother(value, _exponent, MIDPOINT) },
-            { "Bounce In-Out", value => ParametricSmoother(value, _exponent, MIDPOINT) },
-        };
-        var options = _functionOptions.Keys.ToList();
-        _functionJssc = new StorableStringChooser("function", options, options[0], "Function");
-
-        _periodJsf = new StorableFloat("period", 1f, 0f, 10f, false);
-        _quicknessJsf = new StorableFloat("quickness", 1f, 0f, 10f);
-        _lowerValueJsf = new StorableFloat("lowerValue", 0f, 0f, 1f, false);
-        _upperValueJsf = new StorableFloat("upperValue", 0f, 0f, 1f, false);
-        _curvatureJsf = new StorableFloat("curvature", 0.25f, 0.0f, 1.0f);
-        _enableRandomnessJsb = new StorableBool("enableRandomness", true);
-        _targetValueJsf = new JSONStorableFloat("targetValue", 0f, 0f, 1f, false, false);
-        _currentValueJsf = new JSONStorableFloat("currentValue", 0f, 0f, 1f, false, false);
-
-        _versionJss.RegisterTo(this);
-        _atomJssc.RegisterTo(this);
-        _receiverJssc.RegisterTo(this);
-        _receiverTargetJssc.RegisterTo(this);
-        _periodJsf.RegisterTo(this);
-        _quicknessJsf.RegisterTo(this);
-        _lowerValueJsf.RegisterTo(this);
-        _upperValueJsf.RegisterTo(this);
-        _curvatureJsf.RegisterTo(this);
-        _functionJssc.RegisterTo(this);
-        _enableRandomnessJsb.RegisterTo(this);
-
-        _atomJssc.setCallbackFunction = SyncAtom;
-        _receiverJssc.setCallbackFunction = SyncReceiver;
-        _receiverTargetJssc.setCallbackFunction = SyncReceiverTarget;
-        _functionJssc.setCallbackFunction = SyncFunction;
-        _lowerValueJsf.setCallbackFunction = value =>
-        {
-            if(value > _upperValueJsf.val)
-            {
-                _upperValueJsf.val = value;
-            }
-        };
-        _upperValueJsf.setCallbackFunction = value =>
-        {
-            if(value < _lowerValueJsf.val)
-            {
-                _lowerValueJsf.val = value;
-            }
-        };
-        _enableRandomnessJsb.setCallbackFunction = SyncEnableRandomness;
-    }
+    protected override string className => nameof(FloatParamRandomizerEE);
+    protected override bool useVersioning => true;
 
     protected override void CreateUI()
     {
-        var titleTextField = CreateTitleTextField(_titleJss, 72, false);
+        var titleString = new JSONStorableString("title", $"<size=18>\n</size><b>{nameof(FloatParamRandomizerEE)}</b>");
+        var titleTextField = CreateTitleTextField(titleString, 72, false);
         titleTextField.UItext.fontSize = 36;
+        titleTextField.DisableScroll();
 
-        var versionTextField = CreateTitleTextField(_versionJss, 72, true);
+        var versionString = new JSONStorableString("Version", $"v{VERSION}");
+        var versionTextField = CreateTitleTextField(versionString, 72, true);
         versionTextField.UItext.fontSize = 24;
         versionTextField.UItext.alignment = TextAnchor.UpperRight;
+        versionTextField.DisableScroll();
 
-        var atomPopup = CreatePopup(_atomJssc, 1000);
-        atomPopup.popup.onOpenPopupHandlers += SyncAtomOptions;
+        CreatePopup(_atomJssc, 1000).popup.onOpenPopupHandlers += SyncAtomOptions;
+        CreatePopup(_receiverJssc, 860).popup.onOpenPopupHandlers += SyncReceiverOptions;
+        CreatePopup(_receiverTargetJssc, 720).popup.onOpenPopupHandlers += SyncReceiverTargetOptions;
 
-        var receiverPopup = CreatePopup(_receiverJssc, 860);
-        receiverPopup.popup.onOpenPopupHandlers += SyncReceiverOptions;
-
-        var receiverTargetPopup = CreatePopup(_receiverTargetJssc, 720);
-        receiverTargetPopup.popup.onOpenPopupHandlers += SyncReceiverTargetOptions;
-
-        var periodSlider = CreateSlider(_periodJsf, true);
-        periodSlider.label = "Period";
-
-        var quicknessSlider = CreateSlider(_quicknessJsf, true);
-        quicknessSlider.label = "Quickness";
-
-        var lowerValueSlider = CreateSlider(_lowerValueJsf, true);
-        lowerValueSlider.label = "Lower Value";
-
-        var upperValueSlider = CreateSlider(_upperValueJsf, true);
-        upperValueSlider.label = "Upper Value";
-
-        this.NewSpacer(230);
+        CreateSlider(_periodJsf, true).label = "Period";
+        CreateSlider(_quicknessJsf, true).label = "Quickness";
+        CreateSlider(_lowerValueJsf, true).label = "Lower Value";
+        CreateSlider(_upperValueJsf, true).label = "Upper Value";
+        CreateSpacer().height = 230;
 
         var functionPopup = CreateScrollablePopup(_functionJssc);
         ConfigurePopup(functionPopup, 160);
         popups.Add(functionPopup.popup);
 
-        var curvatureSlider = CreateSlider(_curvatureJsf);
-        curvatureSlider.label = "Curvature";
-
-        this.NewSpacer(10, true);
+        CreateSlider(_curvatureJsf).label = "Curvature";
+        CreateSpacer(true).height = 10;
 
         var enableRandomnessToggle = CreateToggle(_enableRandomnessJsb, true);
         enableRandomnessToggle.label = "Enable Randomness";
@@ -291,6 +171,117 @@ sealed class FloatParamRandomizerEE : ScriptBase
         }
     }
 
+    const string SELECT = "Select...";
+
+    StorableStringChooser _atomJssc;
+    StorableStringChooser _receiverJssc;
+    StorableStringChooser _receiverTargetJssc;
+    StorableStringChooser _functionJssc;
+    StorableFloat _curvatureJsf;
+    StorableFloat _periodJsf;
+    StorableFloat _quicknessJsf;
+    StorableFloat _lowerValueJsf;
+    StorableFloat _upperValueJsf;
+    StorableBool _enableRandomnessJsb;
+    JSONStorableFloat _targetValueJsf;
+    JSONStorableFloat _currentValueJsf;
+    JSONStorableFloat _receiverTarget;
+
+    UIDynamicSlider _targetValueSlider;
+
+    string _missingReceiverStoreId;
+    string _missingReceiverTargetName;
+    Atom _receivingAtom;
+    JSONStorable _receiverStorable;
+
+    Dictionary<string, Func<float, float>> _functionOptions;
+    Func<float, float> _function;
+    float _exponent;
+    const float MIDPOINT = 0.5f;
+
+    public override void Init()
+    {
+        try
+        {
+            base.Init();
+            SetupStorables();
+            SyncAtomOptions();
+            _functionJssc.Callback();
+            _enableRandomnessJsb.Callback();
+            _atomJssc.val = containingAtom.uid;
+            SuperController.singleton.onAtomUIDRenameHandlers += OnAtomRenamed;
+            SuperController.singleton.onAtomRemovedHandlers += OnAtomRemoved;
+            initialized = true;
+        }
+        catch(Exception e)
+        {
+            logBuilder.Exception(e);
+        }
+    }
+
+    void SetupStorables()
+    {
+        _atomJssc = new StorableStringChooser("atom", "Atom", null, null)
+        {
+            representsAtomUid = true,
+        };
+        _atomJssc.SetCallback(SyncAtom);
+
+        _receiverJssc = new StorableStringChooser("receiver", "Receiver", null, null);
+        _receiverJssc.SetCallback(SyncReceiver);
+
+        _receiverTargetJssc = new StorableStringChooser("receiverTarget", "Target", null, null);
+        _receiverTargetJssc.SetCallback(SyncReceiverTarget);
+
+        // any function can be added here as long as it takes an x in range [0, 1] and outputs an y in range [0, 1]
+        _functionOptions = new Dictionary<string, Func<float, float>>
+        {
+            { "Ease In-Out", value => ParametricSmoother(value, _exponent, MIDPOINT) },
+            { "Bounce In-Out", value => ParametricSmoother(value, _exponent, MIDPOINT) },
+        };
+        var options = _functionOptions.Keys.ToList();
+        _functionJssc = new StorableStringChooser("function", "Function", options, options[0]);
+        _functionJssc.SetCallback(SyncFunction);
+
+        _periodJsf = new StorableFloat("period", 1f, 0f, 10f, false);
+        _quicknessJsf = new StorableFloat("quickness", 1f, 0f, 10f);
+
+        _lowerValueJsf = new StorableFloat("lowerValue", 0f, 0f, 1f, false);
+        _lowerValueJsf.SetCallback(value =>
+        {
+            if(value > _upperValueJsf.val)
+            {
+                _upperValueJsf.val = value;
+            }
+        });
+
+        _upperValueJsf = new StorableFloat("upperValue", 0f, 0f, 1f, false);
+        _upperValueJsf.SetCallback(value =>
+        {
+            if(value < _lowerValueJsf.val)
+            {
+                _lowerValueJsf.val = value;
+            }
+        });
+
+        _curvatureJsf = new StorableFloat("curvature", 0.25f, 0.0f, 1.0f);
+        _enableRandomnessJsb = new StorableBool("enableRandomness", true);
+        _enableRandomnessJsb.SetCallback(SyncEnableRandomness);
+        _targetValueJsf = new JSONStorableFloat("targetValue", 0f, 0f, 1f, false, false);
+        _currentValueJsf = new JSONStorableFloat("currentValue", 0f, 0f, 1f, false, false);
+
+        _atomJssc.RegisterTo(this);
+        _receiverJssc.RegisterTo(this);
+        _receiverTargetJssc.RegisterTo(this);
+        _periodJsf.RegisterTo(this);
+        _quicknessJsf.RegisterTo(this);
+        _lowerValueJsf.RegisterTo(this);
+        _upperValueJsf.RegisterTo(this);
+        _curvatureJsf.RegisterTo(this);
+        _functionJssc.RegisterTo(this);
+        _enableRandomnessJsb.RegisterTo(this);
+    }
+
     void SyncAtomOptions()
     {
         _atomJssc.choices = SuperController.singleton.GetAtoms().Select(atom => atom.uid).ToList();
@@ -325,24 +316,24 @@ sealed class FloatParamRandomizerEE : ScriptBase
             return;
         }
 
-        if(string.IsNullOrEmpty(value) || value == Strings.SELECT)
+        if(string.IsNullOrEmpty(value) || value == SELECT)
         {
             _receivingAtom = null;
-            _atomJssc.valNoCallback = Strings.SELECT;
+            _atomJssc.valNoCallback = SELECT;
         }
         else
         {
             _receivingAtom = SuperController.singleton.GetAtomByUid(value);
             if(_receivingAtom == null)
             {
-                _logBuilder.Error($"SyncAtom: Atom with uid {value} not found", false);
+                logBuilder.Error($"SyncAtom: Atom with uid {value} not found", false);
             }
         }
 
         SyncReceiverOptions();
         if(!_receiverJssc.choices.Contains(_receiverJssc.val))
         {
-            _receiverJssc.val = Strings.SELECT;
+            _receiverJssc.val = SELECT;
         }
 
         _receiverJssc.Callback();
@@ -355,10 +346,10 @@ sealed class FloatParamRandomizerEE : ScriptBase
             return;
         }
 
-        if(_receivingAtom == null || string.IsNullOrEmpty(value) || value == Strings.SELECT)
+        if(_receivingAtom == null || string.IsNullOrEmpty(value) || value == SELECT)
         {
             _receiverStorable = null;
-            _receiverJssc.valNoCallback = Strings.SELECT;
+            _receiverJssc.valNoCallback = SELECT;
         }
         else
         {
@@ -372,7 +363,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
         SyncReceiverTargetOptions();
         if(!_receiverTargetJssc.choices.Contains(_receiverTargetJssc.val))
         {
-            _receiverTargetJssc.val = Strings.SELECT;
+            _receiverTargetJssc.val = SELECT;
         }
 
         _receiverTargetJssc.Callback();
@@ -385,10 +376,10 @@ sealed class FloatParamRandomizerEE : ScriptBase
             return;
         }
 
-        if(_receivingAtom == null || _receiverStorable == null || string.IsNullOrEmpty(value) || value == Strings.SELECT)
+        if(_receivingAtom == null || _receiverStorable == null || string.IsNullOrEmpty(value) || value == SELECT)
         {
             _receiverTarget = null;
-            _receiverTargetJssc.valNoCallback = Strings.SELECT;
+            _receiverTargetJssc.valNoCallback = SELECT;
         }
         else
         {
@@ -538,7 +529,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
         }
         catch(Exception e)
         {
-            _logBuilder.Exception(e);
+            logBuilder.Exception(e);
             enabledJSON.val = false;
         }
     }
@@ -570,7 +561,7 @@ sealed class FloatParamRandomizerEE : ScriptBase
         }
         catch(Exception e)
         {
-            _logBuilder.Exception(e);
+            logBuilder.Exception(e);
         }
     }
 
@@ -580,69 +571,54 @@ sealed class FloatParamRandomizerEE : ScriptBase
         {
             if(_atomJssc.val == atom.uid)
             {
-                _atomJssc.val = Strings.SELECT;
+                _atomJssc.val = SELECT;
             }
         }
         catch(Exception e)
         {
-            _logBuilder.Exception(e);
+            logBuilder.Exception(e);
         }
     }
 
-    public override void RestoreFromJSON(
+    protected override void DoRestoreFromJSON(
         JSONClass jc,
-        bool restorePhysical = true,
-        bool restoreAppearance = true,
-        JSONArray presetAtoms = null,
-        bool setMissingToDefault = true
+        bool restorePhysical,
+        bool restoreAppearance,
+        JSONArray presetAtoms,
+        bool setMissingToDefault
     )
     {
-        try
+        FixRestoreFromSubscene(jc);
+        string receiverStoreId = null;
+        if(jc.HasKey("receiver"))
         {
-            /* Prevent overriding versionJss.val from JSON. Version stored in JSON just for information,
-             * but could be intercepted here and used to save a "loadedFromVersion" value.
-             */
-            if(jc.HasKey(Strings.VERSION))
-            {
-                jc[Strings.VERSION] = VERSION;
-            }
-
-            FixRestoreFromSubscene(jc);
-            string receiverStoreId = null;
-            if(jc.HasKey("receiver"))
-            {
-                receiverStoreId = jc["receiver"].Value;
-            }
-
-            string receiverTargetName = null;
-            if(jc.HasKey("receiverTarget"))
-            {
-                receiverTargetName = jc["receiverTarget"].Value;
-            }
-
-            base.RestoreFromJSON(jc, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault);
-            subScenePrefix = null;
-
-            _resetValues = false;
-            // ensure correct order for restoring atom, receiver and receiverTarget
-            _atomJssc.Callback();
-            if(!string.IsNullOrEmpty(receiverStoreId))
-            {
-                _receiverJssc.valNoCallback = receiverStoreId;
-                _receiverJssc.Callback();
-
-                if(!string.IsNullOrEmpty(receiverTargetName))
-                {
-                    _receiverTargetJssc.valNoCallback = receiverTargetName;
-                    _receiverTargetJssc.Callback();
-                }
-            }
-            _resetValues = true;
+            receiverStoreId = jc["receiver"].Value;
         }
-        catch(Exception e)
+
+        string receiverTargetName = null;
+        if(jc.HasKey("receiverTarget"))
         {
-            _logBuilder.Exception(e);
+            receiverTargetName = jc["receiverTarget"].Value;
         }
+
+        base.DoRestoreFromJSON(jc, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault);
+        subScenePrefix = null;
+
+        _resetValues = false;
+        // ensure correct order for restoring atom, receiver and receiverTarget
+        _atomJssc.Callback();
+        if(!string.IsNullOrEmpty(receiverStoreId))
+        {
+            _receiverJssc.valNoCallback = receiverStoreId;
+            _receiverJssc.Callback();
+
+            if(!string.IsNullOrEmpty(receiverTargetName))
+            {
+                _receiverTargetJssc.valNoCallback = receiverTargetName;
+                _receiverTargetJssc.Callback();
+            }
+        }
+        _resetValues = true;
     }
 
     /* Ensure loading a SubScene file sets the correct value to JSONStorableStringChooser. */
@@ -664,9 +640,8 @@ sealed class FloatParamRandomizerEE : ScriptBase
         }
     }
 
-    protected override void OnDestroy()
+    protected override void DoDestroy()
     {
-        base.OnDestroy();
         SuperController.singleton.onAtomUIDRenameHandlers -= OnAtomRenamed;
         SuperController.singleton.onAtomRemovedHandlers -= OnAtomRemoved;
     }
