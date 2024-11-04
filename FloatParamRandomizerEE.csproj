@@ -88,13 +88,11 @@
         <Compile Include="src\FloatParamRandomizerEE.cs" />
     </ItemGroup>
     <ItemGroup>
-        <None Include=".gitignore" />
-        <None Include="meta.json" />
-        <None Include="README.md" />
-    </ItemGroup>
-    <ItemGroup>
+        <Content Include="Common\scripts\*.sh"/>
+        <Content Include=".gitignore"/>
         <Content Include="FloatParamRandomizerEE.cslist" />
-        <Content Include="scripts\package.sh" />
+        <Content Include="meta.json"/>
+        <Content Include="README.md" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

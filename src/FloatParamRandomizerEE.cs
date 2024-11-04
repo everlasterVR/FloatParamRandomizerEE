@@ -15,7 +15,7 @@ using static CurveFunctions;
 sealed class FloatParamRandomizerEE : Script
 {
     public override bool ShouldIgnore() => false;
-    protected override string className => nameof(FloatParamRandomizerEE);
+    public override string className => nameof(FloatParamRandomizerEE);
     protected override bool useVersioning => true;
 
     protected override void CreateUI()
@@ -199,24 +199,16 @@ sealed class FloatParamRandomizerEE : Script
     float _exponent;
     const float MIDPOINT = 0.5f;
 
-    public override void Init()
+    protected override void OnInit()
     {
-        try
-        {
-            base.Init();
-            SetupStorables();
-            SyncAtomOptions();
-            _functionJssc.Callback();
-            _enableRandomnessJsb.Callback();
-            _atomJssc.val = containingAtom.uid;
-            SuperController.singleton.onAtomUIDRenameHandlers += OnAtomRenamed;
-            SuperController.singleton.onAtomRemovedHandlers += OnAtomRemoved;
-            initialized = true;
-        }
-        catch(Exception e)
-        {
-            logBuilder.Exception(e);
-        }
+        SetupStorables();
+        SyncAtomOptions();
+        _functionJssc.Callback();
+        _enableRandomnessJsb.Callback();
+        _atomJssc.val = containingAtom.uid;
+        SuperController.singleton.onAtomUIDRenameHandlers += OnAtomRenamed;
+        SuperController.singleton.onAtomRemovedHandlers += OnAtomRemoved;
+        initialized = true;
     }
 
     void SetupStorables()
