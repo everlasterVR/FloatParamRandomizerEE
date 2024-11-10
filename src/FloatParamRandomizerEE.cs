@@ -575,10 +575,10 @@ sealed class FloatParamRandomizerEE : Script
 
     protected override void DoRestoreFromJSON(
         JSONClass jc,
-        bool restorePhysical = true,
-        bool restoreAppearance = true,
-        JSONArray presetAtoms = null,
-        bool setMissingToDefault = true
+        bool restorePhysical,
+        bool restoreAppearance,
+        JSONArray presetAtoms,
+        bool setMissingToDefault
     )
     {
         FixRestoreFromSubscene(jc);
