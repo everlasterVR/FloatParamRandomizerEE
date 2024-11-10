@@ -17,6 +17,7 @@ sealed class FloatParamRandomizerEE : Script
     public override bool ShouldIgnore() => false;
     public override string className => nameof(FloatParamRandomizerEE);
     protected override bool useVersioning => true;
+    protected override bool registerBindings => false;
 
     protected override void CreateUI()
     {
@@ -43,7 +44,7 @@ sealed class FloatParamRandomizerEE : Script
 
         var functionPopup = CreateScrollablePopup(_functionJssc);
         ConfigurePopup(functionPopup, 160);
-        popups.Add(functionPopup.popup);
+        RegisterPopup(functionPopup.popup);
 
         CreateSlider(_curvatureJsf).label = "Curvature";
         CreateSpacer(true).height = 10;
@@ -81,7 +82,7 @@ sealed class FloatParamRandomizerEE : Script
         var uiDynamicPopup = CreateFilterablePopup(jssc);
         ConfigurePopup(uiDynamicPopup, panelHeight);
         AddPrevNextButtons(uiDynamicPopup);
-        popups.Add(uiDynamicPopup.popup);
+        RegisterPopup(uiDynamicPopup.popup);
         return uiDynamicPopup;
     }
 
@@ -574,10 +575,10 @@ sealed class FloatParamRandomizerEE : Script
 
     protected override void DoRestoreFromJSON(
         JSONClass jc,
-        bool restorePhysical,
-        bool restoreAppearance,
-        JSONArray presetAtoms,
-        bool setMissingToDefault
+        bool restorePhysical = true,
+        bool restoreAppearance = true,
+        JSONArray presetAtoms = null,
+        bool setMissingToDefault = true
     )
     {
         FixRestoreFromSubscene(jc);
